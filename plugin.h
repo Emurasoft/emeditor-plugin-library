@@ -1,3 +1,8 @@
+/*
+	plugin.h version 17.5
+	Copyright © 2018 by Emurasoft, Inc.
+*/
+
 // EmEditor Plug-In definition file
 // v3.08 (6 Jan 2001)   CCustomizeInfo::m_bIgnoreColorPrint, CCustomizeInfo::m_bNoFullPathIfNotActive added.
 // v3.12 (16 Jan 2001)  EEID_ALL_PROP added.
@@ -284,7 +289,7 @@
 #define MIN_MARGIN		10
 #define MAX_MARGIN		0x7fff  // inclusive
 
-#define MIN_LINE_SPACE		0
+#define MIN_LINE_SPACE		(-2)
 #define MAX_LINE_SPACE		30  // inclusive
 
 #define MIN_CHAR_SPACE		0
@@ -682,8 +687,10 @@ typedef struct _LOAD_FILE_INFO_EX_V2 {
 #define LFI_ALLOW_NEW_WINDOW    1
 #define LFI_ALLOW_ASYNC_OPEN	2
 
-#define FLAG_CR_ONLY	1
-#define FLAG_LF_ONLY	2
+#define FLAG_CR_AND_LF			0
+#define FLAG_CR_ONLY			1
+#define FLAG_LF_ONLY			2
+#define FLAG_NEWLINE_MIXED		0xff
 
 typedef struct _GET_LINE_INFO {
     UINT_PTR	cch;		// in
@@ -884,21 +891,21 @@ public:
 };
 
 
-#define HISTORY_INSERT_CHAR	  		0
-#define HISTORY_BACK_SPACE	  		1
-#define HISTORY_DELETE_CHAR	  		2
-#define HISTORY_INSERT_STRING		3
-#define HISTORY_DELETE_STRING		5
-#define HISTORY_INSERT_TAB_SEL		6
-#define HISTORY_REVISION_RANGE		7
-#define HISTORY_SV_MODE				8
-#define HISTORY_REPLACE_STRING		9
-#define HISTORY_START_REPLACE		10
-#define HISTORY_REORDER_COLUMN		11
-//#define HISTORY_CSV_EDIT_START		12
-#define HISTORY_CARET_POS			13
-#define HISTORY_REPLACE_ARRAY		14  // v16.6
-#define HISTORY_COMMENT				15
+#define HISTORY_INSERT_CHAR	  		0x00000000L
+#define HISTORY_BACK_SPACE	  		0x00000001L
+#define HISTORY_DELETE_CHAR	  		0x00000002L
+#define HISTORY_INSERT_STRING		0x00000003L
+#define HISTORY_DELETE_STRING		0x00000005L
+#define HISTORY_INSERT_TAB_SEL		0x00000006L
+#define HISTORY_REVISION_RANGE		0x00000007L
+#define HISTORY_SV_MODE				0x00000008L
+#define HISTORY_REPLACE_STRING		0x00000009L
+#define HISTORY_START_REPLACE		0x0000000aL
+#define HISTORY_REORDER_COLUMN		0x0000000bL
+#define HISTORY_SEL_ARRAY			0x0000000cL  // v17.6
+#define HISTORY_CARET_POS			0x0000000dL
+#define HISTORY_REPLACE_ARRAY		0x0000000eL  // v16.6
+#define HISTORY_COMMENT				0x0000000fL
 #define HISTORY_TYPE_MASK			0x0000000fL
 
 #define HISTORY_GROUP_BEGINNING		0x00000100L  // v16.8
@@ -918,6 +925,7 @@ public:
 #define HISTORY_REPLACE_SAME_STRING 0x02000000L
 #define HISTORY_IGNORE_DELETED_STRING 0x04000000L
 #define HISTORY_CSV_EDIT_START		0x08000000L
+#define HISTORY_SEL_LINE			0x10000000L  // v17.6
 
 typedef struct _HISTORY_INFO {
 	size_t  cbSize;
@@ -1955,19 +1963,32 @@ inline int Editor_GetSelTypeEx( HWND hwnd, BOOL bNeedAlways )
 #endif
 
 #define EE_IS_CHAR_HALF_OR_FULL (EE_FIRST+57)
-  // (WCHAR)wParam = ch
+  // 1.
+  // (WCHAR)wParam = ch    WCHAR if nFlag == 0, UINT (scaler value) if nFlag == -1
+  // (int)lParam = nFlag
+  // 2.
+  // (int)wParam = cchStr
+  // (LPCWSTR)lParam = pStr   
   // return (int)nWidth
 
-#ifdef EE_STRICT
+
 inline int Editor_IsCharHalfOrFull( HWND hwnd, WCHAR ch )
 {
 	_ASSERT( hwnd && IsWindow( hwnd ) );
     return (int)SNDMSG( (hwnd), EE_IS_CHAR_HALF_OR_FULL, (WPARAM)ch, (LPARAM)0 );
 }
-#else
-#define Editor_IsCharHalfOrFull( hwnd, ch ) \
-    (int)SNDMSG( (hwnd), EE_IS_CHAR_HALF_OR_FULL, (WPARAM)ch, (LPARAM)0 )
-#endif
+
+inline int Editor_IsCharHalfOrFull( HWND hwnd, UINT ch )
+{
+	_ASSERT( hwnd && IsWindow( hwnd ) );
+    return (int)SNDMSG( (hwnd), EE_IS_CHAR_HALF_OR_FULL, (WPARAM)ch, (LPARAM)-1 );
+}
+
+//inline INT_PTR Editor_IsCharHalfOrFull( HWND hwnd, LPCWSTR pStr, UINT cchStr )
+//{
+//	_ASSERT( hwnd && IsWindow( hwnd ) );
+//    return (INT_PTR)SNDMSG( (hwnd), EE_IS_CHAR_HALF_OR_FULL, (WPARAM)cchStr, (LPARAM)pStr );
+//}
 
 #define EE_INFO                 (EE_FIRST+58)
   // (int)wParam = nCmd
@@ -2874,20 +2895,19 @@ inline BOOL Editor_GetColor( HWND hwnd, BOOL bFind, UINT nIndex, COLORREF* pclrT
 #define SORT_BINARY_COMPARISON	0x01000000
 #define SORT_PRE_DELETE			0x00800000
 #define SORT_LENGTH				0x00400000
-#define SORT_BOOKMARK						0x00200000
-#define SORT_WORDS							0x00100000
-#define SORT_DATE							0x00080000
-#define SORT_SELECTION_ONLY					0x00040000
-#define MANAGE_DUPLICATES_ADJACENT_ONLY		0x00020000
+#define SORT_BOOKMARK							0x00200000
+#define SORT_WORDS								0x00100000
+#define SORT_DATE								0x00080000
+#define SORT_SELECTION_ONLY						0x00040000
+#define MANAGE_DUPLICATES_ADJACENT_ONLY			0x00020000
+#define MANAGE_DUPLICATES_IGNORE_EMPTY_LINES	0x00010000
+#define MANAGE_DUPLICATES_INCLUDE_ALL			0x00008000
+#define MANAGE_DUPLICATES_SELECTION_ONLY		SORT_SELECTION_ONLY
+#define MANAGE_DUPLICATES_BOOKMARK				SORT_BOOKMARK
+#define MANAGE_DUPLICATES_IGNORE_CASE			NORM_IGNORECASE   // 1
 
 #define SORT_MASK				(NORM_IGNORECASE|NORM_IGNOREKANATYPE|NORM_IGNORENONSPACE|NORM_IGNORESYMBOLS|NORM_IGNOREWIDTH|SORT_STRINGSORT|SORT_DIGITSASNUMBERS)  // was 0x03ffffff
 #define DEF_SORT_OPTIONS		(SORT_IGNORE_PREFIX)
-
-#define MANAGE_DUPLICATES_IGNORE_EMPTY_LINES	1
-#define MANAGE_DUPLICATES_SELECTION_ONLY		SORT_SELECTION_ONLY
-#define MANAGE_DUPLICATES_BOOKMARK				SORT_BOOKMARK
-#define MANAGE_DUPLICATES_INCLUDE_ALL			2
-
 
 typedef struct _GET_CELL_INFO {
     UINT_PTR	cch;		// in
@@ -2949,7 +2969,10 @@ inline int Editor_Filter( HWND hwnd, LPCWSTR szFilter, int iColumn, UINT64 nFlag
 #define JOIN_FLAG_INCLUDE_ALL_2		0x0008
 #define JOIN_FLAG_MATCH_CASE		0x0010
 #define JOIN_FLAG_SIMPLE_JOIN		0x0020
-#define JOIN_FLAG_MASK				0x003f
+#define JOIN_FLAG_IGNORE_HEADINGS_1	0x0040
+#define JOIN_FLAG_IGNORE_HEADINGS_2	0x0080
+#define JOIN_FLAG_MASK				0x00ff
+#define DEF_JOIN_FLAG				(JOIN_FLAG_IGNORE_HEADINGS_1 | JOIN_FLAG_IGNORE_HEADINGS_2)
 
 
 typedef struct _JOIN_INFO {
@@ -3239,7 +3262,7 @@ inline int Editor_GetActiveString( HWND hwnd, ACTIVE_STRING_INFO* pInfo )
 #define FLAG_FILL_EXPAND_SELECTION	0x0400
 #define FLAG_FILL_VALID_MASK		(FLAG_FILL_COPY | FLAG_FILL_SERIES | FLAG_FILL_FLASH | FLAG_FILL_DONT_OVERWRITE | FLAG_FILL_REPEAT | FLAG_FILL_EXPAND_SELECTION)
 
-#define S_FILL_NONE					S_OK
+#define S_FILL_NONE					S_OK  // = 0
 #define S_FILL_COPY					(HRESULT)(FLAG_FILL_COPY)
 #define S_FILL_SERIES				(HRESULT)(FLAG_FILL_SERIES)
 #define S_FILL_FLASH				(HRESULT)(FLAG_FILL_FLASH)
@@ -3411,6 +3434,11 @@ inline HRESULT Editor_AutoFill( HWND hwnd, AUTOFILL_INFO* pInfo )
 
 // new from v17.5
 #define EI_REFRESH_COMMON_SETTINGS			366
+
+// new from v17.6
+#define EI_GET_NEWLINE_CODE					367
+
+
 
 #define VALIDATE_ADJUST_COLUMNS			0x00000001
 #define VALIDATE_QUIET					0x00000002
@@ -3736,10 +3764,10 @@ public:
     int         m_nMarginQuote;     // quoted line margin
     int         m_nTabSpace;        // tab columns 
     int         m_nEncodingRead;    // encoding for read
-	BYTE		m_nLineSpace;		// line space
-	BYTE		m_nCharSpace;		// v7: character space
+	char		m_nLineSpace;		// line space
+	char		m_nCharSpace;		// v7: character space
 	WORD		m_wParenPairBits;   // PRO only  v9: Paren Pairs to highlight/autocomplete Bits  
-	BYTE		m_nLineSpacePrint;  // space between lines
+	char		m_nLineSpacePrint;  // space between lines
     bool        m_bAutoCompleteParen;  // PRO only  v9: Auto Complete corresponding bracket
 	BYTE		m_byteMinimapAspectPercent;  // v16.3
 	BYTE		m_byteDefHighlight;          // was m_bIPv4;
