@@ -1,6 +1,6 @@
 /*
-	plugin.h version 17.5
-	Copyright © 2018 by Emurasoft, Inc.
+	plugin.h version 17.6
+	Copyright (c) 2018 Emurasoft, Inc.
 */
 
 // EmEditor Plug-In definition file
@@ -1964,10 +1964,13 @@ inline int Editor_GetSelTypeEx( HWND hwnd, BOOL bNeedAlways )
 
 #define EE_IS_CHAR_HALF_OR_FULL (EE_FIRST+57)
   // 1.
-  // (WCHAR)wParam = ch    WCHAR if nFlag == 0, UINT (scaler value) if nFlag == -1
-  // (int)lParam = nFlag
+  // (WCHAR)wParam = ch
+  // (int)lParam = 0
   // 2.
-  // (int)wParam = cchStr
+  // (UINT)wParam = nScaler
+  // (int)lParam = -1
+  // 3.
+  // (INT_PTR)wParam = cchStr
   // (LPCWSTR)lParam = pStr   
   // return (int)nWidth
 
@@ -1984,11 +1987,11 @@ inline int Editor_IsCharHalfOrFull( HWND hwnd, UINT ch )
     return (int)SNDMSG( (hwnd), EE_IS_CHAR_HALF_OR_FULL, (WPARAM)ch, (LPARAM)-1 );
 }
 
-//inline INT_PTR Editor_IsCharHalfOrFull( HWND hwnd, LPCWSTR pStr, UINT cchStr )
-//{
-//	_ASSERT( hwnd && IsWindow( hwnd ) );
-//    return (INT_PTR)SNDMSG( (hwnd), EE_IS_CHAR_HALF_OR_FULL, (WPARAM)cchStr, (LPARAM)pStr );
-//}
+inline INT_PTR Editor_IsCharHalfOrFull( HWND hwnd, LPCWSTR pStr, INT_PTR cchStr )
+{
+	_ASSERT( hwnd && IsWindow( hwnd ) );
+    return (INT_PTR)SNDMSG( (hwnd), EE_IS_CHAR_HALF_OR_FULL, (WPARAM)cchStr, (LPARAM)pStr );
+}
 
 #define EE_INFO                 (EE_FIRST+58)
   // (int)wParam = nCmd
@@ -2883,18 +2886,18 @@ inline BOOL Editor_GetColor( HWND hwnd, BOOL bFind, UINT nIndex, COLORREF* pclrT
 #define CELL_DONT_CHECK_DELIMITER			0x0010
 #define USE_HGLOBAL							0x0020
 
-#define SORT_DESCEND			0x00000000
-#define SORT_ASCEND				0x80000000
-#define SORT_TEXT				0x00000000
-#define SORT_NUM				0x40000000
-#define SORT_IGNORE_PREFIX		0x20000000
-#define SORT_LENGTH_VIEW		0x10000000  // v4.7
-#define SORT_DELETE_DUPLICATE	0x08000000
-#define SORT_ENABLED			0x04000000  // internal use only
-#define SORT_STABLE				0x02000000
-#define SORT_BINARY_COMPARISON	0x01000000
-#define SORT_PRE_DELETE			0x00800000
-#define SORT_LENGTH				0x00400000
+#define SORT_DESCEND							0x00000000
+#define SORT_ASCEND								0x80000000
+#define SORT_TEXT								0x00000000
+#define SORT_NUM								0x40000000
+#define SORT_IGNORE_PREFIX						0x20000000
+#define SORT_LENGTH_VIEW						0x10000000
+#define SORT_DELETE_DUPLICATE					0x08000000
+#define SORT_ENABLED							0x04000000  // internal use only
+#define SORT_STABLE								0x02000000
+#define SORT_BINARY_COMPARISON					0x01000000
+#define SORT_PRE_DELETE							0x00800000
+#define SORT_LENGTH								0x00400000
 #define SORT_BOOKMARK							0x00200000
 #define SORT_WORDS								0x00100000
 #define SORT_DATE								0x00080000
@@ -2902,11 +2905,13 @@ inline BOOL Editor_GetColor( HWND hwnd, BOOL bFind, UINT nIndex, COLORREF* pclrT
 #define MANAGE_DUPLICATES_ADJACENT_ONLY			0x00020000
 #define MANAGE_DUPLICATES_IGNORE_EMPTY_LINES	0x00010000
 #define MANAGE_DUPLICATES_INCLUDE_ALL			0x00008000
+#define MANAGE_DUPLICATES_LARGE_TEST			0x00004000
 #define MANAGE_DUPLICATES_SELECTION_ONLY		SORT_SELECTION_ONLY
 #define MANAGE_DUPLICATES_BOOKMARK				SORT_BOOKMARK
 #define MANAGE_DUPLICATES_IGNORE_CASE			NORM_IGNORECASE   // 1
 
-#define SORT_MASK				(NORM_IGNORECASE|NORM_IGNOREKANATYPE|NORM_IGNORENONSPACE|NORM_IGNORESYMBOLS|NORM_IGNOREWIDTH|SORT_STRINGSORT|SORT_DIGITSASNUMBERS)  // was 0x03ffffff
+#define SORT_MASK				(NORM_IGNORECASE|NORM_IGNOREKANATYPE|NORM_IGNORENONSPACE|NORM_IGNORESYMBOLS|NORM_IGNOREWIDTH|SORT_STRINGSORT|SORT_DIGITSASNUMBERS)
+#define MANAGE_DUPLICATES_MASK	(MANAGE_DUPLICATES_IGNORE_EMPTY_LINES | MANAGE_DUPLICATES_BOOKMARK | MANAGE_DUPLICATES_ADJACENT_ONLY | MANAGE_DUPLICATES_INCLUDE_ALL | MANAGE_DUPLICATES_IGNORE_CASE | MANAGE_DUPLICATES_LARGE_TEST)
 #define DEF_SORT_OPTIONS		(SORT_IGNORE_PREFIX)
 
 typedef struct _GET_CELL_INFO {
