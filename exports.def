@@ -1,0 +1,8 @@
+EXPORTS
+	OnCommand			@1
+	QueryStatus			@2
+	OnEvents			@3
+	GetMenuTextID		@4
+	GetStatusMessageID	@5
+	GetBitmapID			@6
+	PlugInProc			@7

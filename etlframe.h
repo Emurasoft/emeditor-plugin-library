@@ -1,6 +1,6 @@
 /*
-	etlframe.h version 17.5
-	Copyright © 2018 by Emurasoft, Inc.
+	etlframe.h version 17.6
+	Copyright (c) 2018 Emurasoft, Inc.
 */
 
 #if _MSC_VER > 1000
