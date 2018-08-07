@@ -1,6 +1,7 @@
 /*
-	plugin.h version 17.6
+	plugin.h version 18.0
 	Copyright (c) 2018 Emurasoft, Inc.
+	Licensed under the MIT license. See LICENSE for details.
 */
 
 // EmEditor Plug-In definition file
@@ -216,11 +217,20 @@
 // v17.3                EEID_MOVE_COLUMN_RIGHT and EEID_MOVE_COLUMN_LEFT commands were added.
 // v17.4				Added FLAG_FIND_BOL, FLAG_FIND_EOL, and FLAG_FIND_LOOKAROUND constants.
 // v17.5				Added EE_AUTOFILL message, Editor_AutoFill inline function, AUTOFILL_INFO structure.
+// v17.6				MANAGE_DUPLICATES_IGNORE_EMPTY_CELLS, SORT_UNQUOTE_CELLS flags added. 
+// v17.7				EE_COMPARE message, Editor_Compare inline function, COMPARE_INFO structure added.
+//                      EEID_CUSTOMIZE_RENDERING and EEID_COMPARE_GENERATE_REPORT added.
+// v17.8                LFI_USE_TEMP_FILE and LFI_DONT_USE_TEMP_FILE added.
+//                      SMART_COLOR_OPEN_FILTER added.
 //
 #pragma once
 
 #ifdef __cplusplus
 #define EE_STRICT    // uses inline functions instead of macros
+#endif
+
+#ifndef _ASSERT
+#define _ASSERT(expr) ((void)0)
 #endif
 
 #define E_DOCUMENT_1_NOT_FOUND				_HRESULT_TYPEDEF_(0xa0000001L)
@@ -238,7 +248,11 @@
 #define E_NO_SELECTION						_HRESULT_TYPEDEF_(0xa0000012L)
 #define E_CELL_INCLUDES_DELIMITER			_HRESULT_TYPEDEF_(0xa0000013L)
 #define E_INCONSISTENT_NUM_OF_CELLS			_HRESULT_TYPEDEF_(0xa0000014L)
+#define E_DIFF								_HRESULT_TYPEDEF_(0xa0000015L)  // used internally
 
+#define S_MATCHED							_HRESULT_TYPEDEF_(0x20000001L)
+#define S_MATCHED_IGNORED					_HRESULT_TYPEDEF_(0x20000002L)
+#define S_DIFF								_HRESULT_TYPEDEF_(0x20000003L)
 
 #define DEFAULT_DPI		96
 
@@ -246,6 +260,7 @@
 #define CLR_NONE                0xFFFFFFFFL
 #endif
 
+#define REG_VERISON_18_0        22
 #define REG_VERSION_17_0_2		21
 #define REG_VERSION_17_0		20
 #define REG_VERSION_17_0_B1		19
@@ -257,7 +272,7 @@
 #define REG_VERSION_13          13
 #define REG_VERSION_10          10
 #define REG_VERSION_3           3  // v3
-#define REG_VERSION             REG_VERSION_17_0_2
+#define REG_VERSION             REG_VERISON_18_0
 
 #define UPDATE_TREE_NONE			0
 #define UPDATE_OUTLINE				1
@@ -269,11 +284,13 @@
 #define INDENT_CUSTOM				2
 #define INDENT_BRACKETS				3
 #define INDENT_CUSTOM_BEGIN_END		4
+#define INDENT_BITS_MASK			7
 
 #define WORK_OUTLINE_ALL			1
 #define WORK_TREE_SEL				2
 
-#define MAX_HIGHLIGHT_COLOR	10
+//#define MAX_HIGHLIGHT_COLOR	10
+#define MAX_HIGHLIGHT_COLOR	(10 + 5)  // SMART_COLOR_COMPARE_CHANGE ... SMART_COLOR_COMPARE_BLANK added
 
 #define RETURN_METHOD_BOTH		0
 #define RETURN_METHOD_CR_ONLY	1
@@ -418,6 +435,7 @@
 #define CODEPAGE_MAYBE_EUC          66305  // internal use only
 #define CODEPAGE_CONFIG             66307  // internal use only
 #define CODEPAGE_SAME_AS_DOC		66308  // internal use only
+#define CODEPAGE_MORE				66309  // internal use only
 
 //#define DEF_UNDO_BUFFER_SIZE    100000
 //#define MIN_UNDO_BUFFER_SIZE    10
@@ -544,7 +562,8 @@
 #define SMART_COLOR_RULER_SEL			92
 #define SMART_COLOR_LINE_NUMBER_CURR	93
 #define SMART_COLOR_RULER_CURR			94
-#define MAX_SMART_COLOR					95 // 89
+#define SMART_COLOR_OPEN_FILTER			95  // v17.8
+#define MAX_SMART_COLOR					96
 
 #define SMART_COLOR_INVALID				MAX_SMART_COLOR
 
@@ -684,13 +703,16 @@ typedef struct _LOAD_FILE_INFO_EX_V2 {
 	INT_PTR yCursor;
 } LOAD_FILE_INFO_EX_V2;
 
-#define LFI_ALLOW_NEW_WINDOW    1
-#define LFI_ALLOW_ASYNC_OPEN	2
+#define LFI_ALLOW_NEW_WINDOW		1
+#define LFI_ALLOW_ASYNC_OPEN		2
+#define LFI_USE_TEMP_FILE			4
+#define LFI_DONT_USE_TEMP_FILE		8
 
 #define FLAG_CR_AND_LF			0
 #define FLAG_CR_ONLY			1
 #define FLAG_LF_ONLY			2
 #define FLAG_NEWLINE_MIXED		0xff
+#define FLAG_ABORT				0xfe
 
 typedef struct _GET_LINE_INFO {
     UINT_PTR	cch;		// in
@@ -1365,14 +1387,14 @@ inline void Editor_SetCaretPos( HWND hwnd, int nLogical, POINT_PTR* pptPos )
 #endif
 
 #ifdef EE_STRICT
-inline void Editor_SetCaretPosEx( HWND hwnd, int nLogical, POINT_PTR* pptPos, BOOL bExtend )
+inline HRESULT Editor_SetCaretPosEx( HWND hwnd, int nLogical, POINT_PTR* pptPos, BOOL bExtend )
 {
 	_ASSERT( hwnd && IsWindow( hwnd ) );
-    SNDMSG( (hwnd), EE_SET_CARET_POS, MAKEWPARAM(nLogical, bExtend), (LPARAM)(POINT_PTR*)(pptPos) );
+	return (HRESULT)SNDMSG( (hwnd), EE_SET_CARET_POS, MAKEWPARAM(nLogical, bExtend), (LPARAM)(POINT_PTR*)(pptPos) );
 }
 #else
 #define Editor_SetCaretPosEx( hwnd, nLogical, pptPos, bExtend ) \
-    (void)SNDMSG( (hwnd), EE_SET_CARET_POS, MAKEWPARAM(nLogical, bExtend), (LPARAM)(POINT_PTR*)(pptPos) )
+    (HRESULT)SNDMSG( (hwnd), EE_SET_CARET_POS, MAKEWPARAM(nLogical, bExtend), (LPARAM)(POINT_PTR*)(pptPos) )
 #endif
 
 #define EE_SET_SCROLL_POS       (EE_FIRST+19)
@@ -2214,14 +2236,14 @@ inline void Editor_GetAnchorPos( HWND hwnd, int nLogical, POINT_PTR* pptPos )
   // (POINT_PTR*)lParam = pptPos
 
 #ifdef EE_STRICT
-inline void Editor_SetAnchorPos( HWND hwnd, int nLogical, POINT_PTR* pptPos )
+inline HRESULT Editor_SetAnchorPos( HWND hwnd, int nLogical, POINT_PTR* pptPos )
 {
 	_ASSERT( hwnd && IsWindow( hwnd ) );
-    SNDMSG( (hwnd), EE_SET_ANCHOR_POS, (WPARAM)(int)(nLogical), (LPARAM)(POINT_PTR*)(pptPos) );
+    return (HRESULT)SNDMSG( (hwnd), EE_SET_ANCHOR_POS, (WPARAM)(int)(nLogical), (LPARAM)(POINT_PTR*)(pptPos) );
 }
 #else
 #define Editor_SetAnchorPos( hwnd, nLogical, pptPos ) \
-    (void)SNDMSG( (hwnd), EE_SET_ANCHOR_POS, (WPARAM)(int)(nLogical), (LPARAM)(POINT_PTR*)(pptPos) )
+    (HRESULT)SNDMSG( (hwnd), EE_SET_ANCHOR_POS, (WPARAM)(int)(nLogical), (LPARAM)(POINT_PTR*)(pptPos) )
 #endif
 
 #define EE_GET_REDRAW               (EE_FIRST+71)
@@ -2896,7 +2918,7 @@ inline BOOL Editor_GetColor( HWND hwnd, BOOL bFind, UINT nIndex, COLORREF* pclrT
 #define SORT_ENABLED							0x04000000  // internal use only
 #define SORT_STABLE								0x02000000
 #define SORT_BINARY_COMPARISON					0x01000000
-#define SORT_PRE_DELETE							0x00800000
+#define SORT_UNQUOTE_CELLS						0x00800000
 #define SORT_LENGTH								0x00400000
 #define SORT_BOOKMARK							0x00200000
 #define SORT_WORDS								0x00100000
@@ -2906,12 +2928,14 @@ inline BOOL Editor_GetColor( HWND hwnd, BOOL bFind, UINT nIndex, COLORREF* pclrT
 #define MANAGE_DUPLICATES_IGNORE_EMPTY_LINES	0x00010000
 #define MANAGE_DUPLICATES_INCLUDE_ALL			0x00008000
 #define MANAGE_DUPLICATES_LARGE_TEST			0x00004000
+#define MANAGE_DUPLICATES_IGNORE_EMPTY_CELLS	0x00002000
 #define MANAGE_DUPLICATES_SELECTION_ONLY		SORT_SELECTION_ONLY
 #define MANAGE_DUPLICATES_BOOKMARK				SORT_BOOKMARK
 #define MANAGE_DUPLICATES_IGNORE_CASE			NORM_IGNORECASE   // 1
 
 #define SORT_MASK				(NORM_IGNORECASE|NORM_IGNOREKANATYPE|NORM_IGNORENONSPACE|NORM_IGNORESYMBOLS|NORM_IGNOREWIDTH|SORT_STRINGSORT|SORT_DIGITSASNUMBERS)
-#define MANAGE_DUPLICATES_MASK	(MANAGE_DUPLICATES_IGNORE_EMPTY_LINES | MANAGE_DUPLICATES_BOOKMARK | MANAGE_DUPLICATES_ADJACENT_ONLY | MANAGE_DUPLICATES_INCLUDE_ALL | MANAGE_DUPLICATES_IGNORE_CASE | MANAGE_DUPLICATES_LARGE_TEST)
+#define SORT_MASK_ALL			(SORT_MASK | SORT_IGNORE_PREFIX | SORT_LENGTH_VIEW | SORT_STABLE | SORT_BINARY_COMPARISON | SORT_UNQUOTE_CELLS)
+#define MANAGE_DUPLICATES_MASK	(MANAGE_DUPLICATES_IGNORE_EMPTY_LINES | MANAGE_DUPLICATES_BOOKMARK | MANAGE_DUPLICATES_ADJACENT_ONLY | MANAGE_DUPLICATES_INCLUDE_ALL | MANAGE_DUPLICATES_IGNORE_CASE | MANAGE_DUPLICATES_LARGE_TEST | MANAGE_DUPLICATES_IGNORE_EMPTY_CELLS)
 #define DEF_SORT_OPTIONS		(SORT_IGNORE_PREFIX)
 
 typedef struct _GET_CELL_INFO {
@@ -3292,6 +3316,70 @@ inline HRESULT Editor_AutoFill( HWND hwnd, AUTOFILL_INFO* pInfo )
 	return (int)SNDMSG( (hwnd), EE_AUTOFILL, 0, (LPARAM)(AUTOFILL_INFO*)(pInfo) );
 }
 
+#define COMPARE_SWAP_FILES				0x00000001
+#define COMPARE_OLDER_FIRST				0x00000002
+#define COMPARE_IGNORE_LEAD_SPACE		0x00000004
+#define COMPARE_IGNORE_TRAIL_SPACE		0x00000008
+#define COMPARE_IGNORE_EMBEDDED_SPACE	0x00000010
+#define COMPARE_IGNORE_CASE				0x00000020
+#define COMPARE_IGNORE_CRLF				0x00000040
+#define COMPARE_IGNORE_COMMENT			0x00000080
+#define COMPARE_SYNC_SCROLL_VERT		0x00000100
+#define COMPARE_SYNC_SCROLL_HORZ		0x00000200
+#define COMPARE_SYNC_CARET				0x00000400
+#define COMPARE_TILE_VERT				0x00000800
+#define COMPARE_TILE_HORZ				0x00001000
+#define COMPARE_SWITCH_NO_WRAP			0x00002000
+#define COMPARE_SAVE_OPTIONS			0x00004000
+#define COMPARE_IGNORE_ENCODING			0x00008000
+#define COMPARE_RESTORE_POS				0x00010000
+#define COMPARE_QUIET					0x00020000
+#define COMPARE_SYNC_SCROLL_ONLY		0x00040000
+#define COMPARE_RESET					0x00080000
+#define COMPARE_RESET_AFTER				0x00100000
+#define COMPARE_GENERATE_REPORT			0x00200000
+#define COMPARE_OPEN_REPORT				0x00400000
+#define COMPARE_REPORT_DIFF_ONLY		0x00800000
+#define COMPARE_REPORT_3_COL			0x10000000
+
+#define COMPARE_QUALITY_1				0x01000000
+#define COMPARE_QUALITY_2				0x02000000
+#define COMPARE_QUALITY_3				0x03000000
+#define COMPARE_QUALITY_4				0x04000000
+#define COMPARE_QUALITY_5				0x05000000
+#define COMPARE_QUALITY_MASK			0x07000000
+#define COMPARE_QUALITY_DEF				COMPARE_QUALITY_3
+
+#define MIN_COMPARE_QUALITY				1
+#define MAX_COMPARE_QUALITY				5
+#define DEF_COMPARE_QUALITY				3
+
+#define DEF_COMPARE_OPTIONS				(COMPARE_TILE_VERT | COMPARE_SYNC_SCROLL_VERT | COMPARE_SYNC_SCROLL_HORZ | COMPARE_SYNC_CARET | COMPARE_SWITCH_NO_WRAP | COMPARE_RESTORE_POS | COMPARE_QUALITY_DEF)
+#define DEF_SYNC_OPTIONS				(COMPARE_TILE_VERT | COMPARE_SYNC_SCROLL_VERT | COMPARE_SYNC_SCROLL_HORZ | COMPARE_SWITCH_NO_WRAP | COMPARE_RESTORE_POS | COMPARE_QUALITY_DEF)
+
+#define COMPARE_OPTION_MASK				(COMPARE_IGNORE_LEAD_SPACE | COMPARE_IGNORE_TRAIL_SPACE | COMPARE_IGNORE_EMBEDDED_SPACE | COMPARE_IGNORE_CASE | COMPARE_IGNORE_CRLF | COMPARE_IGNORE_COMMENT | COMPARE_SYNC_SCROLL_VERT | COMPARE_SYNC_SCROLL_HORZ  | COMPARE_SYNC_CARET  | COMPARE_TILE_VERT  | COMPARE_TILE_HORZ  | COMPARE_SWITCH_NO_WRAP | COMPARE_IGNORE_ENCODING | COMPARE_RESTORE_POS | COMPARE_QUIET | COMPARE_SYNC_SCROLL_ONLY | COMPARE_RESET | COMPARE_RESET_AFTER | COMPARE_GENERATE_REPORT | COMPARE_OPEN_REPORT | COMPARE_REPORT_DIFF_ONLY | COMPARE_REPORT_3_COL | COMPARE_QUALITY_MASK )
+
+typedef struct _COMPARE_INFO {
+	UINT		cbSize;
+	UINT		flags;
+	LPCWSTR		pszDocument1;
+	LPCWSTR		pszDocument2;
+	LPCWSTR		pszResultFileName;
+} COMPARE_INFO;
+
+#define EE_COMPARE		(EE_FIRST+118)
+
+inline int Editor_Compare( HWND hwnd, UINT nFlags, LPCWSTR pszDocument1, LPCWSTR pszDocument2, LPCWSTR pszResultFileName )
+{
+	_ASSERT( hwnd && IsWindow( hwnd ) );
+	COMPARE_INFO ci;
+	ci.cbSize = sizeof( ci );
+	ci.flags = nFlags;
+	ci.pszDocument1 = pszDocument1;
+	ci.pszDocument2 = pszDocument2;
+	ci.pszResultFileName = pszResultFileName;
+	return (int)SNDMSG( (hwnd), EE_COMPARE, (LPARAM)&ci, 0 );
+}
 //
 #define EE_LAST                 (EE_FIRST+255)
 
@@ -3443,7 +3531,20 @@ inline HRESULT Editor_AutoFill( HWND hwnd, AUTOFILL_INFO* pInfo )
 // new from v17.6
 #define EI_GET_NEWLINE_CODE					367
 
+// new from v17.8
+#define EI_GET_MEMORY_SIZE					368
+#define EI_SET_MEMORY_SIZE					369
 
+// v17.9
+#define EI_GET_BOOKMARK_COUNT				370
+
+// v18.0
+#define EI_SYNC_NOW							371
+
+#define SYNC_FLAG_FORCE				1				
+#define SYNC_FLAG_SEND				2
+#define SYNC_FLAG_RECEIVE			4
+#define SYNC_FLAG_REFRESH_UI		8
 
 #define VALIDATE_ADJUST_COLUMNS			0x00000001
 #define VALIDATE_QUIET					0x00000002
@@ -3521,74 +3622,75 @@ inline HRESULT Editor_AutoFill( HWND hwnd, AUTOFILL_INFO* pInfo )
 
 // EE_FIND, EE_REPLACE, EE_FIND_IN_FILES, EE_REPLACE_IN_FILES, EE_MATCH_REGEX, EE_FIND_REGEX
 #define FLAG_FIND_NEXT					0x0000000000000001i64  // EE_FIND only
+#define FLAG_FILTER_ENABLED				0x0000000000000001i64  // internal use only
 #define FLAG_FIND_CASE					0x0000000000000002i64  // EE_FIND, EE_REPLACE, EE_FIND_IN_FILES and EE_REPLACE_IN_FILES, EE_MATCH_REGEX and EE_FIND_REGEX
 #define FLAG_FIND_ESCAPE				0x0000000000000004i64  // EE_FIND and EE_REPLACE, EE_FIND_IN_FILES and EE_REPLACE_IN_FILES
 #define FLAG_REPLACE_SEL_ONLY			0x0000000000000008i64  // EE_REPLACE only
-#define FLAG_FIND_SEL_ONLY				FLAG_REPLACE_SEL_ONLY  // EE_FIND only
+#define FLAG_FIND_DETECT_WORD			0x0000000000000008i64  // internal use only for "AddOccurrenceFlags" entry
 #define FLAG_REPLACE_ALL				0x0000000000000010i64  // EE_REPLACE only
 #define FLAG_FIND_NO_PROMPT				0x0000000000000020i64  // EE_FIND and EE_REPLACE
 #define FLAG_FIND_ONLY_WORD				0x0000000000000040i64  // EE_FIND, EE_REPLACE, EE_FIND_IN_FILES and EE_REPLACE_IN_FILES, and EE_FIND_REGEX
 #define FLAG_FIND_AROUND				0x0000000000000080i64  // EE_FIND only
+#define FLAG_FIND_IGNORE_BINARY			0x0000000000000080i64  // EE_FIND_IN_FILES and EE_REPLACE_IN_FILES (same as FLAG_FIND_AROUND) v15.1  // should be saved as "GrepFlag" entry
 #define FLAG_FIND_REG_EXP				0x0000000000000100i64  // EE_FIND, EE_REPLACE, EE_FIND_IN_FILES and EE_REPLACE_IN_FILES
 #define FLAG_FIND_CLOSE					0x0000000000000200i64  // EE_FIND and EE_REPLACE
+#define FLAG_FIND_SHOW_IGNORED			0x0000000000000200i64  // EE_FIND_IN_FILES and EE_REPLACE_IN_FILES (same as FLAG_FIND_CLOSE) v15.1  // should be saved as "GrepFlag" entry
 #define FLAG_FIND_RECURSIVE				0x0000000000000400i64  // EE_FIND_IN_FILES and EE_REPLACE_IN_FILES
-
+#define FLAG_FIND_LOGICAL_OR			0x0000000000000400i64  // EE_FILTER  (the value same as FLAG_FIND_RECURSIVE)
 #define FLAG_FIND_FILENAMES_ONLY		0x0000000000000800i64  // EE_FIND_IN_FILES only
-#define FLAG_FIND_OUTPUT_DISPLAY		0x0000000002000000i64  // EE_FIND_IN_FILES only (v14)
-#define FLAG_FIND_LINE_ONLY				(FLAG_FIND_OUTPUT_DISPLAY)  // EE_FIND_IN_FILES only
-#define FLAG_FIND_MATCHED_ONLY			(FLAG_FIND_FILENAMES_ONLY+FLAG_FIND_OUTPUT_DISPLAY)  // EE_FIND_IN_FILES only
-
 #define FLAG_REPLACE_KEEP_OPEN			0x0000000000001000i64  // EE_REPLACE_IN_FILES only
+#define FLAG_FIND_CONTINUE				0x0000000000001000i64  // EE_FILTER  (the value same as FLAG_REPLACE_KEEP_OPEN)
 #define FLAG_REPLACE_BACKUP				0x0000000000002000i64  // EE_REPLACE_IN_FILES only
+#define FLAG_FIND_KEEP_PREVIOUS			0x0000000000002000i64  // EE_FILTER  (the value same as FLAG_REPLACE_BACKUP)
 #define FLAG_FIND_IGNORE_FILES			0x0000000000004000i64  // EE_FIND_IN_FILES and EE_REPLACE_IN_FILES
+#define FLAG_FIND_REMOVE_LAST			0x0000000000004000i64  // EE_FILTER  (the value same as FLAG_FIND_IGNORE_FILES)
 #define FLAG_FIND_OPEN_DOC				0x0000000000008000i64  // EE_FIND and EE_REPLACE
 #define FLAG_FIND_MATCH_DOT_NL			0x0000000000010000i64  // internal use only
 #define FLAG_FIND_INCREMENTAL			0x0000000000020000i64  // internal use only
 #define FLAG_FIND_SAVE_HISTORY			0x0000000000040000i64  // EE_FIND, EE_REPLACE, EE_FIND_IN_FILES and EE_REPLACE_IN_FILES
 #define FLAG_FIND_COUNT					0x0000000000080000i64  // EE_FIND
 #define FLAG_FIND_BOOKMARK				0x0000000000100000i64  // EE_FIND
-
 #define FLAG_FIND_SELECT_ALL			0x0000000000200000i64  // EE_FIND
-//#define FLAG_FIND_ADD_NEXT			0x0000000000400000i64  // EE_FIND internal use only
-#define FLAG_FIND_ADD_NEXT				0x4000000000000000i64  // EE_FIND internal use only
-//#define FLAG_FIND_NO_DESELECT			0x0000000000800000i64  // EE_FIND internal use only
-#define FLAG_FIND_NO_DESELECT			0x8000000000000000i64  // EE_FIND internal use only
-														  
+#define FLAG_FIND_WHOLE_STRING			0x0000000000400000i64
 #define FLAG_FIND_OUTPUT				0x0000000001000000i64  // EE_FIND_IN_FILES only
-#define FLAG_FIND_FILTER				0x0000000010000000i64  // internal use only
-#define FLAG_FIND_OPEN_DIRECT			(FLAG_FIND_FILTER)
-#define FLAG_FIND_OPEN_FILTER			(FLAG_FIND_OUTPUT+FLAG_FIND_FILTER)
-
+#define FLAG_FIND_OUTPUT_DISPLAY		0x0000000002000000i64  // EE_FIND_IN_FILES only (v14)
 #define FLAG_GREP_NO_CLOSE				0x0000000004000000i64  // EE_FIND_IN_FILES and EE_REPLACE_IN_FILES (v14)
 #define FLAG_FIND_EXTRACT				0x0000000008000000i64  // EE_FIND
+#define FLAG_FIND_FILTER				0x0000000010000000i64  // internal use only
+#define FLAG_FIND_EMBEDDED_NL			0x0000000020000000i64  // EE_FIND, EE_REPLACE and EE_FILTER for CSV embedded new lines
+#define FLAG_FIND_NEGATIVE				0x0000000040000000i64  // EE_FILTER
 #define FLAG_FIND_UPDATE_MARKER			0x0000000080000000i64  // internal use only
 #define FLAG_FIND_EXTRACT_FILE_LINE		0x0000000080000000i64  // internal use only for macros
-#define FLAG_FIND_NEGATIVE				0x0000000040000000i64  // EE_FILTER
-#define FLAG_FIND_CONTINUE				0x0000000000001000i64  // EE_FILTER  (the value same as FLAG_REPLACE_KEEP_OPEN)
-#define FLAG_FIND_KEEP_PREVIOUS			0x0000000000002000i64  // EE_FILTER  (the value same as FLAG_REPLACE_BACKUP)
-#define FLAG_FIND_REMOVE_LAST			0x0000000000004000i64  // EE_FILTER  (the value same as FLAG_FIND_IGNORE_FILES)
-#define FLAG_FIND_LOGICAL_OR			0x0000000000000400i64  // EE_FILTER  (the value same as FLAG_FIND_RECURSIVE)
-#define FLAG_FIND_EMBEDDED_NL			0x0000000020000000i64  // EE_FIND, EE_REPLACE and EE_FILTER for CSV embedded new lines
-#define FLAG_FILTER_ENABLED				0x0000000000000001i64  // internal use only
 #define FLAG_FILTER_DISABLED			0x0000000080000000i64  // internal use only
-
-#define FLAG_FIND_IGNORE_BINARY			0x0000000000000080i64  // EE_FIND_IN_FILES and EE_REPLACE_IN_FILES (same as FLAG_FIND_AROUND) v15.1  // should be saved as "GrepFlag" entry
-#define FLAG_FIND_SHOW_IGNORED			0x0000000000000200i64  // EE_FIND_IN_FILES and EE_REPLACE_IN_FILES (same as FLAG_FIND_CLOSE) v15.1  // should be saved as "GrepFlag" entry
 #define FLAG_FIND_SEPARATE_CRLF			0x0000000100000000i64
 #define FLAG_FIND_REGEX_BOOST			0x0000000200000000i64
 #define FLAG_FIND_REGEX_ONIGMO			0x0000000400000000i64
-#define FLAG_FIND_WHOLE_STRING			0x0000000000400000i64
-
+//#define FLAG_FIND_COLUMN				0x0000000800000000i64  // EE_FIND only
+#define FLAG_FIND_INSERT_COLUMN			0x0000001000000000i64  // EE_REPLACE only
+#define FLAG_FIND_BEGIN_NL				0x0010000000000000i64  // internal use only
+#define FLAG_FIND_END_NL				0x0020000000000000i64  // internal use only
+#define FLAG_FIND_NO_OVERLAP			0x0040000000000000i64
+#define FLAG_FIND_LOOKAROUND			0x0080000000000000i64
+#define FLAG_FIND_REPLACE_LATER			0x0100000000000000i64  // internal use only
 #define FLAG_FIND_BOL					0x0200000000000000i64
 #define FLAG_FIND_EOL					0x0400000000000000i64
+#define FLAG_FIND_SINGLE_LINE			0x0800000000000000i64  // internal use only
+#define FLAG_FIND_ADD_NEXT				0x4000000000000000i64  // EE_FIND internal use only
+#define FLAG_FIND_NO_DESELECT			0x8000000000000000i64  // EE_FIND internal use only
+
+#define FLAG_FIND_SEL_ONLY				FLAG_REPLACE_SEL_ONLY  // EE_FIND only
+
+#define FLAG_FIND_LINE_ONLY				(FLAG_FIND_OUTPUT_DISPLAY)  // EE_FIND_IN_FILES only
+#define FLAG_FIND_MATCHED_ONLY			(FLAG_FIND_FILENAMES_ONLY+FLAG_FIND_OUTPUT_DISPLAY)  // EE_FIND_IN_FILES only
+														  
+#define FLAG_FIND_OPEN_DIRECT			(FLAG_FIND_FILTER)
+#define FLAG_FIND_OPEN_FILTER			(FLAG_FIND_OUTPUT+FLAG_FIND_FILTER)
+
 #define FLAG_FIND_BOL_EOL				(FLAG_FIND_BOL | FLAG_FIND_EOL)
-#define FLAG_FIND_LOOKAROUND			0x0080000000000000i64
-#define FLAG_FIND_NO_OVERLAP			0x0040000000000000i64
 
 #define FLAG_GREP_MASK					(0x0000000706047d46i64 | FLAG_FIND_OUTPUT | FLAG_FIND_FILTER)
-#define FLAG_FIND_EXTRACT_MASK			(FLAG_FIND_FILENAMES_ONLY | FLAG_FIND_OUTPUT_DISPLAY | FLAG_FIND_OUTPUT)
-//#define FLAG_FIND_MASK_WITHOUT_EXTRACT	0x00000007283f83ffi64
-#define FLAG_FIND_MASK_WITHOUT_EXTRACT	(0x00000007283f83ffi64 | FLAG_FIND_BOL_EOL | FLAG_FIND_LOOKAROUND)
+#define FLAG_FIND_EXTRACT_MASK			(FLAG_FIND_FILENAMES_ONLY | FLAG_FIND_OUTPUT_DISPLAY | FLAG_FIND_OUTPUT /*| FLAG_FIND_COLUMN*/)
+#define FLAG_FIND_MASK_WITHOUT_EXTRACT	(0x00000007283f83ffi64 | FLAG_FIND_BOL_EOL | FLAG_FIND_LOOKAROUND | FLAG_FIND_INSERT_COLUMN)
 #define FLAG_FIND_MASK					(FLAG_FIND_MASK_WITHOUT_EXTRACT | FLAG_FIND_EXTRACT_MASK)
 #define FLAG_BATCH_REPLACE_MASK			(FLAG_FIND_CASE | FLAG_FIND_ONLY_WORD | FLAG_FIND_REG_EXP | FLAG_FIND_EMBEDDED_NL | FLAG_FIND_SEPARATE_CRLF | FLAG_FIND_MATCH_DOT_NL | FLAG_FIND_REGEX_BOOST | FLAG_FIND_REGEX_ONIGMO)
 #define FLAG_FILTER_MASK				(FLAG_FIND_CASE | FLAG_FIND_ESCAPE | FLAG_FIND_ONLY_WORD | FLAG_FIND_REG_EXP | FLAG_FIND_INCREMENTAL | FLAG_FIND_NEGATIVE)
@@ -3596,20 +3698,13 @@ inline HRESULT Editor_AutoFill( HWND hwnd, AUTOFILL_INFO* pInfo )
 #define FLAG_MACRO_FILTER_MASK			((FLAG_ADVANCED_FILTER_MASK | FLAG_FIND_CONTINUE | FLAG_FIND_KEEP_PREVIOUS | FLAG_FIND_REMOVE_LAST) & ~FLAG_FILTER_ENABLED)
 #define FLAG_FIND_SAVE_MASK				((FLAG_GREP_MASK | FLAG_FIND_MASK) & ~(FLAG_FIND_NO_PROMPT | FLAG_FIND_BOOKMARK | FLAG_FIND_SAVE_HISTORY | FLAG_FIND_SELECT_ALL | FLAG_FIND_ADD_NEXT | FLAG_FIND_EXTRACT))
 
-// internal use only
-#define FLAG_FIND_DETECT_WORD			0x0000000000000008i64   // for "AddOccurrenceFlags" entry
-#define FLAG_FIND_SINGLE_LINE			0x0800000000000000i64
-#define FLAG_FIND_REPLACE_LATER			0x0100000000000000i64
-#define FLAG_FIND_BEGIN_NL				0x0010000000000000i64
-#define FLAG_FIND_END_NL				0x0020000000000000i64
-
 #define FLAG_FIND_SEARCH_ALL			(FLAG_FIND_COUNT | FLAG_FIND_BOOKMARK | FLAG_FIND_SELECT_ALL | FLAG_FIND_EXTRACT | FLAG_FIND_FILTER | FLAG_FIND_UPDATE_MARKER | FLAG_FIND_REPLACE_LATER)  // internal use only
 #define FLAG_FIND_RETURN_COUNT			(FLAG_FIND_COUNT | FLAG_FIND_BOOKMARK | FLAG_FIND_SELECT_ALL | FLAG_FIND_EXTRACT | FLAG_FIND_FILTER)  // internal use only
 #define FLAG_FIND_SAVE_UNIQUE_MASK		(FLAG_FIND_IGNORE_BINARY | FLAG_FIND_SHOW_IGNORED | FLAG_FIND_OUTPUT | FLAG_FIND_FILTER | FLAG_FIND_FILENAMES_ONLY | FLAG_FIND_OUTPUT_DISPLAY)  // internal use only
 
-#define DEFAULT_FIND_FLAG			(FLAG_FIND_AROUND)
-#define DEFAULT_ADD_OCCURRENCE		(FLAG_FIND_CASE | FLAG_FIND_ONLY_WORD)
-#define DEFAULT_FILTER_FLAG			(FLAG_FIND_INCREMENTAL)
+#define DEFAULT_FIND_FLAG				(FLAG_FIND_AROUND)
+#define DEFAULT_ADD_OCCURRENCE			(FLAG_FIND_CASE | FLAG_FIND_ONLY_WORD)
+#define DEFAULT_FILTER_FLAG				(FLAG_FIND_INCREMENTAL)
 
 // FLAG_FIND_OUTPUT_DISPLAY = 0, FLAG_FIND_FILENAMES_ONLY = 0 : Displays file names and lines  OUTPUT_DISPLAY_FILE_AND_LINE
 // FLAG_FIND_OUTPUT_DISPLAY = 0, FLAG_FIND_FILENAMES_ONLY = 1 : Displays file names only       OUTPUT_DISPLAY_FILE_ONLY
@@ -3761,38 +3856,38 @@ public:
     LOGFONTW    m_alfScreen[MAX_CHARSET];   // screen fonts
     LOGFONTW    m_alfPrint[MAX_CHARSET];    // printer fonts
     POINT       m_ptShowScrollBar;      // scroll bars (x: horizontal and y: vertical) 0: no display, 1: display only when necessary, 2: display always
-    int         m_nPrinterMarginTop;    // printer top margin
+    int         m_nPrinterMarginTop;    // printer top margin  (in 1/1000 inch) (0 - USHRT_MAX (32767))
     int         m_nPrinterMarginBottom; // printer bottom margin
     int         m_nPrinterMarginLeft;   // printer left margin
-    int         m_nWrapMode;        // wrap mode
-    int         m_nMarginNormal;    // normal line margin
-    int         m_nMarginQuote;     // quoted line margin
-    int         m_nTabSpace;        // tab columns 
-    int         m_nEncodingRead;    // encoding for read
-	char		m_nLineSpace;		// line space
-	char		m_nCharSpace;		// v7: character space
+    int         m_nWrapMode;        // wrap mode (WRAP_NONE - MAX_WRAP_MODE-1)
+    int         m_nMarginNormal;    // normal line margin (MIN_MARGIN - MAX_MARGIN)
+    int         m_nMarginQuote;     // quoted line margin (MIN_MARGIN - MAX_MARGIN)
+    int         m_nTabSpace;        // tab columns (LOWER_INDENT - UPPER_INDENT)
+    int         m_nEncodingRead;    // encoding for read (1 - CODEPAGE_HEX)
+	char		m_nLineSpace;		// line space  (MIN_LINE_SPACE - MAX_LINE_SPACE-1) 
+	char		m_nCharSpace;		// v7: character space  (MIN_CHAR_SPACE - MAX_CHAR_SPACE-1)
 	WORD		m_wParenPairBits;   // PRO only  v9: Paren Pairs to highlight/autocomplete Bits  
-	char		m_nLineSpacePrint;  // space between lines
+	char		m_nLineSpacePrint;  // space between lines  (MIN_LINE_SPACE - MAX_LINE_SPACE-1)
     bool        m_bAutoCompleteParen;  // PRO only  v9: Auto Complete corresponding bracket
 	BYTE		m_byteMinimapAspectPercent;  // v16.3
-	BYTE		m_byteDefHighlight;          // was m_bIPv4;
+	BYTE		m_byteDefHighlight;          // (DEF_HIGHLIGHT_NONE (0) - DEF_HIGHLIGHT_ADD (2))
     UINT        m_nAS;      //  was m_nHiliteTag before v3.16
 	bool		m_bShowUserDefinedGuides;  // v14.2
 	BYTE		m_byteScrollFlags;
 	bool		m_bTrackChanges;
 	bool		m_bPreferUtf8;		// v14.6
-    UINT        m_nAutoSaveTime;    // PRO only  auto save time
-    int         m_nCheckFileChanged; // v3: changed by another program
-    UINT        m_nNotUsed; // m_nUndoBufferSize;  // PRO only  undo max number
-    int         m_nEncodingNew;     // v3: encoding for new files
-    int         m_nCrLfNew;         // v3: how to return for new files
+    UINT        m_nAutoSaveTime;    // PRO only  auto save time  (0 - MAX_AUTO_SAVE_TIME (9999))
+    int         m_nCheckFileChanged; // v3: changed by another program  (0 - MAX_CHECK_FILE_CHANGED-1)
+    UINT        m_nDummy; // m_nUndoBufferSize;  // PRO only  undo max number
+    int         m_nEncodingNew;     // v3: encoding for new files  (1 - CODEPAGE_HEX)
+    int         m_nCrLfNew;         // v3: how to return for new files  (FLAG_CR_AND_LF - FLAG_LF_ONLY)
 	bool         m_bShowOneLineAbove;     // v15.4
 	bool         m_bRememberVisitedLinks; // v15.4
 	bool         m_bFixedPitchFont;
 	BYTE		m_byteMinimapZoomPercent;  // v16.3
-    int         m_nEncodingWrite;   // PRO only v3: encoding for saving
-    int         m_nCrLfWrite;       // PRO only v3: how to return for saving
-    int         m_nSpecialSyntax;   // v3.16: Special Syntax
+    int         m_nEncodingWrite;   // PRO only v3: encoding for saving    (1 - CODEPAGE_HEX)
+    int         m_nCrLfWrite;       // PRO only v3: how to return for saving  (SAVE_CRLF_NONE (0) - SAVE_CRLF_LF_ONLY (3))
+    int         m_nSpecialSyntax;   // v3.16: Special Syntax  (SPECIAL_SYNTAX_NONE (0) - MAX_SPECIAL_SYNTAX-1 (2))
     WCHAR       m_chEscape;         // v3.16: Escape character
     bool        m_bPasteAnsi;       // PRO only v3.16: Always Paste as ANSI
     bool        m_bNewTemplate;     // v3.17: Use template for a new file
@@ -3801,22 +3896,22 @@ public:
     WCHAR       m_chIndentBegin;    // v3.17: Begin Indent
     WCHAR       m_chIndentEnd;      // v3.17: End Indent
     WCHAR       m_chEndOfStatement; // v3.17: End of Statement
-    int         m_nIndentSpace;     // v3.19: Indent columns
+    int         m_nIndentSpace;     // v3.19: Indent columns  (LOWER_INDENT (1) - UPPER_INDENT (255))
     bool        m_bNoSpaceEdge;     // v3.19: No space at left edge of Window
-    BYTE        m_byteOpenFileInQuotes;       // obsolete  // m_bAnsiFont;        // v3.28: Non-Unicode Font --- obsolete
+    BYTE        m_byteOpenFileInQuotes;       // obsolete   (OPEN_FILE_IN_QUOTES_NONE (0) - OPEN_FILE_IN_QUOTES_ASSOCIATED (2))
     bool        m_bShowScrollOnlyActive; // v3.31: Show scroll bars only when current pane is active
     bool        m_bWrapPagePrint;   // v3.31: Wrap by Page when printing
     int         m_nPrinterMarginRight;  // v3.24: printer right margin
-    int         m_nMaxFindHilite;       // PRO only v3.32: (Depth of searched string to highlight) - 1
+    int         m_nMaxFindHilite;       // PRO only v3.32: (Depth of searched string to highlight) - 1   ((-1) - 29)
     bool        m_bPromptInvalidChar; // v4.01: Prompt if invalid characters found
-    BYTE        m_byteUntitled;        // PRO only 6.00: auto name untitled -- v4.03: Synchronize Read-Only attribute
-    BYTE        m_byteMonitorInterval;  // PRO only 5.00: monitor interval for changed file (File tab)
+    BYTE        m_byteUntitled;        // auto name untitled  (0 - 3)
+    BYTE        m_byteMonitorInterval;  // PRO only 5.00: monitor interval for changed file (File tab)  (MIN_MONITOR_INTERVAL - MAX_MONITOR_INTERVAL)
     bool        m_bVirtualSpace;    // PRO only 7.00 : Enable Virtual Space
 	BYTE		m_byteSmoothScrollSpeed;	// 7.00 : Smooth Scroll Speed  MIN_SMOOTH_SCROLL_SPEED (slow) - MAX_SMOOTH_SCROLL_SPEED (fast)
 	bool		m_bShowIndentGuides;        // PRO only 8.00 : Show Indent Guides
 	bool		m_bHorzGrid;		// PRO only v10: Horizontal Grid (was m_bDottedLine)
 	bool		m_bSelectInURL;   // obsolete   // PRO only 9.00 : Clicking in URL selects the whole string
-	BYTE		m_bRegexIndent;  // was bool, v13 BYTE;
+	BYTE		m_bRegexIndent;  // (REGEX_INDENT_NONE (0) - REGEX_INDENT_NL_ONLY (2))
 	BYTE		m_byteDetectSV;					// bool		m_bDetectCSV;
 	bool		m_bDetectTSV;		// PRO only v9 : Detect TSV
 	bool		m_bDetectDSV;		// PRO only v9 : Detect DSV (user-defined delimiter)
@@ -3840,12 +3935,12 @@ public:
     bool        m_bNotepadDiary;    // notepad compatible diary
     bool        m_bPrintLineNum;    // print line numbers
     bool        m_bPromptNullFile;  // prompt if Null character found
-    BYTE        m_bytePromptCrLf;      // prompt at inconsistent returns
+    BYTE        m_bytePromptCrLf;      // prompt at inconsistent returns (0 - 3)
     bool        m_bShowEOF;         // show EOF
     bool        m_bShowCR;          // show returns
     bool        m_bShowTab;         // show tab
-    BYTE        m_byteShowLineNum;     // show line numbers
-    BYTE        m_bShowLogicalLine; // line and column display as
+    BYTE        m_byteShowLineNum;     // show line numbers  (0 - 3)
+    BYTE        m_bShowLogicalLine; // line and column display as (POS_VIEW (0) - MAX_LINE_COLUMN_MODE-1 (3))
     bool        m_bWordWrap;        // word wrap
     bool        m_bFaceWrap;        // PRO only enable non-wrap words
     bool        m_bKinsokuWrap;     // wrap these characters
@@ -3882,8 +3977,7 @@ public:
     bool        m_bMoveCursorScroll;        // PRO only v3: move cursor by scrolling
     bool        m_bHorzLine;                // v3: horizontal line
     bool        m_bVertLine;                // v3: vertical line
-	//bool        m_bScroll2Lines;            // PRO only v3: double line scroll
-	BYTE        m_byteScrollFlagsEx;            // PRO only v3: double line scroll
+	BYTE        m_byteScrollFlagsEx;            // PRO only v3: double line scroll  (0 - 3)
     bool        m_bFastKeyRepeat;           // PRO only v3: faster cursor movement
     bool        m_bDBCharUrl;               // PRO only v3: recognize double-byte characters as URLs
     bool        m_bKanaUrl;                 // PRO only v3: recognize single-byte kana and kana marks as URLs
@@ -3908,7 +4002,7 @@ public:
     bool        m_bDeleteSpaceEnd;          // PRO only v3.15: Delete Space at End of Lines
     bool        m_bSaveAsEntity;            // v3.15: Encode Unicode as HTML Entity
     bool        m_bShowControl;             // PRO only v3.15: Highlight Control Characters
-    BYTE        m_bQuoteType;               // v3.16: Quote type, combination of QUOTE_SINGLE, QUOTE_DOUBLE and QUOTE_CONTINUE
+    BYTE        m_bQuoteType;               // v3.16: Quote type, combination of QUOTE_SINGLE, QUOTE_DOUBLE and QUOTE_CONTINUE  (0 - 7)
     WCHAR       m_chKanjiInChar;            // OBSOLETE transitional character to kanji
     WCHAR       m_chKanjiOutChar;           // OBSOLETE transitional character to single-bytes 
     WCHAR       m_chTagLeft;                // begin tag
@@ -4654,6 +4748,13 @@ public:
 #define EEID_MOVE_COLUMN_RIGHT            3994
 #define EEID_MOVE_COLUMN_LEFT             3995
 
+// v17.7
+#define EEID_COMPARE_GENERATE_REPORT      3996
+#define EEID_USE_DIRECT_WRITE             3997
+
+// v17.9
+#define EEID_DUPLICATE_COLUMN             3998
+
 // other commands
 #define EEID_FILE_MRU_FILE1               4609  // to EEID_FILE_MRU_FILE1 + 63
 #define EEID_MRU_FONT1                    4736  // to EEID_MRU_FONT1 + 63
@@ -4667,9 +4768,10 @@ public:
 #define EEID_FILE_NEW_CONFIG              7168  // to EEID_FILE_NEW_CONFIG + 255
 #define EEID_FILE_SAVE_DEFINED            7680  // to EEID_FILE_SAVE_DEFINED + 255
 #define EEID_TOOL1                        8192  // to EEID_TOOL1 + 255
+#define EEID_SPELL_SUGGEST				  8768  // to EEID_SPELL_SUGGEST + 31
+#define EEID_PASTE_RECENT                 9120  // to EEID_PASTE_RECENT + 31
 #define EEID_MACRO1                       9216  // to EEID_MACRO1 + 1023
 #define EEID_CUSTOM_REBAR1                21504 // to EEID_CUSTOM_REBAR1 + 255
-#define EEID_SPELL_SUGGEST				  8768  // to EEID_SPELL_SUGGEST + 31
 #define EEID_SELECT_DICTIONARY			  22016 // to EEID_SELECT_DICTIONARY + 255
 #define EEID_SV_MODE					  22528 // to EEID_SV_MODE + 7
 #define EEID_CONVERT_TO_SV                22656 // to EEID_CONVERT_TO_SV + 7
@@ -4749,6 +4851,9 @@ public:
 #define EEID_CUSTOMIZE_SV                 9055
 #define EEID_CUSTOMIZE_FORMAT             9056
 #define EEID_CUSTOMIZE_ACTIVE_STRING      9057
+#define EEID_CUSTOMIZE_RENDERING          9058
+#define EEID_CUSTOMIZE_WORKSPACE          9059
+#define EEID_CUSTOMIZE_SYNC               9060
 
 // for Projects plug-in
 #ifdef USE_PROJECTS_PLUGIN

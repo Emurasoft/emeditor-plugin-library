@@ -1,6 +1,7 @@
 /*
-	etlframe.h version 17.6
+	etlframe.h version 18.0
 	Copyright (c) 2018 Emurasoft, Inc.
+	Licensed under the MIT license. See LICENSE for details.
 */
 
 #if _MSC_VER > 1000
@@ -830,7 +831,10 @@ extern "C" void __stdcall OnEvents( HWND hwndView, UINT nEvent, LPARAM lParam )
 		_ASSERTE( _ETLData.m_wCmdID == 0 );
 		_ASSERTE( _ETLData.m_pETLFrameMap == NULL );
 		_ETLData.m_wCmdID = LOWORD( lParam );
-		_ETLData.m_pETLFrameMap = new CETLFrameMap;
+		if( _ETLData.m_pETLFrameMap == NULL ) {
+			_ETLData.m_pETLFrameMap = new CETLFrameMap;
+		}
+		_ASSERT( _ETLData.m_pETLFrameMap->size() == 0 );
 		if( Editor_GetVersion( hwndView ) < 5000 ){   // previous versions of EmEditor do not fire EVENT_CREATE_FRAME.
 			OnEvents( hwndView, EVENT_CREATE_FRAME, lParam );
 		}
