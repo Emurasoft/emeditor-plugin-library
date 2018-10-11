@@ -1,5 +1,4 @@
 /*
-	etlframe.h version 18.0
 	Copyright (c) 2018 Emurasoft, Inc.
 	Licensed under the MIT license. See LICENSE for details.
 */
