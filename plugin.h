@@ -4807,6 +4807,20 @@ public:
 #define EEID_SEL_TRIM_LEFT                4015
 #define EEID_SEL_TRIM_RIGHT               4016
 
+// v18.5
+#define EEID_RIGHT_EDGE                   4017
+#define EEID_LEFT_EDGE                    4018
+#define EEID_TOP_EDGE                     4019
+#define EEID_BOTTOM_EDGE                  4020
+#define EEID_SHIFT_RIGHT_EDGE             4021
+#define EEID_SHIFT_LEFT_EDGE              4022
+#define EEID_SHIFT_TOP_EDGE               4023
+#define EEID_SHIFT_BOTTOM_EDGE            4024
+#define EEID_BOX_EXTEND_RIGHT             4025
+#define EEID_BOX_EXTEND_LEFT              4026
+#define EEID_BOX_EXTEND_UP	            4027
+#define EEID_BOX_EXTEND_DOWN              4028
+
 // other commands
 #define EEID_FILE_MRU_FILE1               4609  // to EEID_FILE_MRU_FILE1 + 63
 #define EEID_MRU_FONT1                    4736  // to EEID_MRU_FONT1 + 63
