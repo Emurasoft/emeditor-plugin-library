@@ -1,5 +1,5 @@
 /*
-	Copyright (c) 2018 Emurasoft, Inc.
+	Copyright (c) 2019 Emurasoft, Inc.
 	Licensed under the MIT license. See LICENSE for details.
 */
 
@@ -227,6 +227,8 @@
 // v18.6				Added EEID_REMOVE_EMPTY_LINES through EEID_FILTERBAR_WHOLE_STRING
 // v18.7                Added EEID_CLEAR_CONTENTS.
 // v18.8                Added FLAG_JAPANESE_YEN and FLAG_KOREAN_WON flags to the EE_CONVERT message and Editor_Convert inline function.
+// v18.9                Added EEID_SORT_IPV4_A to EEID_SORT_IPV6_D.
+//                      Added the SORT_IPV4 and SORT_IPV6 flags to the SORT_INFO structure and Editor_Sort inline function.
 
 #pragma once
 
@@ -257,6 +259,7 @@
 #define E_SEL_CONTAINS_NEWLINE				_HRESULT_TYPEDEF_(0xa0000016L)  // used internally
 #define E_SEL_SAME_LINE						_HRESULT_TYPEDEF_(0xa0000017L)  // used internally
 #define E_FILTER_NOT_SUPPORTED				_HRESULT_TYPEDEF_(0xa0000018L)
+#define E_SEL_CONTAINS_READONLY				_HRESULT_TYPEDEF_(0xa0000019L)
 
 #define S_MATCHED							_HRESULT_TYPEDEF_(0x20000001L)
 #define S_MATCHED_IGNORED					_HRESULT_TYPEDEF_(0x20000002L)
@@ -268,6 +271,7 @@
 #define CLR_NONE                0xFFFFFFFFL
 #endif
 
+#define REG_VERISON_19_0        26
 #define REG_VERISON_18_7        25
 #define REG_VERISON_18_6        24
 #define REG_VERISON_18_1        23
@@ -283,7 +287,7 @@
 #define REG_VERSION_13          13
 #define REG_VERSION_10          10
 #define REG_VERSION_3           3  // v3
-#define REG_VERSION             REG_VERISON_18_7
+#define REG_VERSION             REG_VERISON_19_0
 
 #define UPDATE_TREE_NONE			0
 #define UPDATE_OUTLINE				1
@@ -447,7 +451,11 @@
 #define CODEPAGE_SAME_AS_DOC		66308  // internal use only
 #define CODEPAGE_MORE				66309  // internal use only
 
+#ifdef _WIN64
 #define MAX_UNDO_COUNT			0x08000000
+#else
+#define MAX_UNDO_COUNT			0x00800000
+#endif
 #define MIN_UNDO_COUNT			0x100
 
 #define MAX_PLUG_IN_NAME        MAX_PATH
@@ -571,8 +579,11 @@
 #define SMART_COLOR_RULER_CURR			94
 #define SMART_COLOR_OPEN_FILTER			95  // v17.8
 #define SMART_COLOR_MULTI_SELECTION		96  // v18.6
+#define SMART_COLOR_VALIDATOR_ERROR		97  // v19.0
+#define SMART_COLOR_VALIDATOR_WARNING	98  // v19.0
+#define SMART_COLOR_VALIDATOR_MESSAGE	99  // v19.0
 
-#define MAX_SMART_COLOR					97  // 96
+#define MAX_SMART_COLOR					100  // 96
 
 #define SMART_COLOR_INVALID				MAX_SMART_COLOR
 
@@ -2949,6 +2960,8 @@ inline BOOL Editor_GetColor( HWND hwnd, BOOL bFind, UINT nIndex, COLORREF* pclrT
 #define SORT_DATE								0x00080000
 #define SORT_SELECTION_ONLY						0x00040000
 #define SORT_RANDOM								0x00008000
+#define SORT_IPV4								0x00004000
+#define SORT_IPV6								0x00002000
 #define MANAGE_DUPLICATES_ADJACENT_ONLY			0x00020000
 #define MANAGE_DUPLICATES_IGNORE_EMPTY_LINES	0x00010000
 #define MANAGE_DUPLICATES_INCLUDE_ALL			0x00008000
@@ -3586,7 +3599,7 @@ inline int Editor_Compare( HWND hwnd, UINT nFlags, LPCWSTR pszDocument1, LPCWSTR
 #define CSV_INVALID_QUOTES				0x00000008
 #define CSV_INCONSISTENT_COLUMNS		0x00000010
 #define CSV_NOT_CSV						0x00000020
-
+#define CSV_RETRY_SINGLE_THREAD			0x00000040  // internal use
 
 #define DPI_OPTIONS_UNAWARE						0
 #define DPI_OPTIONS_SYSTEM						1
@@ -3890,6 +3903,23 @@ inline int Editor_Compare( HWND hwnd, UINT nFlags, LPCWSTR pszDocument1, LPCWSTR
 #define DELETE_SPACE_END_YES			1
 #define DELETE_SPACE_END_EXCEPT_CURSOR	2
 
+#define VALIDATOR_SHOW_NONE			0
+#define VALIDATOR_SHOW_OPENED		1
+#define VALIDATOR_SHOW_ON_ERRORS	2
+#define VALIDATOR_SHOW_MASK			3
+
+#define VALIDATOR_ENABLED			4
+
+#define VALIDATOR_TYPE_HTML			0x00
+#define VALIDATOR_TYPE_CSS			0x10
+#define VALIDATOR_TYPE_JSON			0x20
+#define VALIDATOR_TYPE_MASK			0x30
+#define MAX_VALIDATOR_TYPE			3
+
+#define DEF_VALIDATOR_HTML			(VALIDATOR_ENABLED | VALIDATOR_SHOW_ON_ERRORS | VALIDATOR_TYPE_HTML)
+#define DEF_VALIDATOR_CSS			(VALIDATOR_ENABLED | VALIDATOR_SHOW_ON_ERRORS | VALIDATOR_TYPE_CSS)
+#define DEF_VALIDATOR_JSON			(VALIDATOR_ENABLED | VALIDATOR_SHOW_ON_ERRORS | VALIDATOR_TYPE_JSON)
+
 class CCustomizeInfo
 {
 public:
@@ -3918,7 +3948,10 @@ public:
 	bool		m_bPreferUtf8;		// v14.6
     UINT        m_nAutoSaveTime;    // PRO only  auto save time  (0 - MAX_AUTO_SAVE_TIME (9999))
     int         m_nCheckFileChanged; // v3: changed by another program  (0 - MAX_CHECK_FILE_CHANGED-1)
-    UINT        m_nDummy; // m_nUndoBufferSize;  // PRO only  undo max number
+	BYTE        m_byteDummy4;      // was        m_nDummy; // m_nUndoBufferSize;  // PRO only  undo max number
+	BYTE        m_byteDummy3;
+	BYTE        m_byteDummy2;
+	BYTE        m_byteDummy1;
     int         m_nEncodingNew;     // v3: encoding for new files  (1 - CODEPAGE_HEX)
     int         m_nCrLfNew;         // v3: how to return for new files  (FLAG_CR_AND_LF - FLAG_LF_ONLY)
 	bool         m_bShowOneLineAbove;     // v15.4
@@ -3994,7 +4027,7 @@ public:
     bool        m_bDummy5;      // was m_bMailTo;          // clicking mail address sends mail
     bool        m_bLinkDblclick;      // obsolete  // PRO only enable double clicking only
     bool        m_bFullPath;        // PRO only show file name with full path
-    bool        m_b7BitKanji;       // OBSOLETE  7 bit kanji  
+	BYTE        m_byteValidator;      // was bool m_b7BitKanji;       // OBSOLETE  7 bit kanji  
     bool        m_bCrLfSeparateMark;    // PRO only  show CR and LF with different marks 
     bool        m_bShowRuler;       // show ruler
     bool        m_bAutoSave;        // PRO only auto save
@@ -4841,6 +4874,12 @@ public:
 
 // v18.7
 #define EEID_CLEAR_CONTENTS               4033
+
+// v18.9
+#define EEID_SORT_IPV4_A                  4034
+#define EEID_SORT_IPV4_D                  4035
+#define EEID_SORT_IPV6_A                  4036
+#define EEID_SORT_IPV6_D                  4037
 
 // other commands
 #define EEID_FILE_MRU_FILE1               4609  // to EEID_FILE_MRU_FILE1 + 63
