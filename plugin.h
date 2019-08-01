@@ -1,5 +1,5 @@
 /*
-	Copyright (c) 2018 Emurasoft, Inc.
+	Copyright (c) 2019 Emurasoft, Inc.
 	Licensed under the MIT license. See LICENSE for details.
 */
 
@@ -227,6 +227,10 @@
 // v18.6				Added EEID_REMOVE_EMPTY_LINES through EEID_FILTERBAR_WHOLE_STRING
 // v18.7                Added EEID_CLEAR_CONTENTS.
 // v18.8                Added FLAG_JAPANESE_YEN and FLAG_KOREAN_WON flags to the EE_CONVERT message and Editor_Convert inline function.
+// v18.9                Added EEID_SORT_IPV4_A to EEID_SORT_IPV6_D.
+//                      Added the SORT_IPV4 and SORT_IPV6 flags to the SORT_INFO structure and Editor_Sort inline function.
+// v19.0                Added SORT_REVERSE, SORT_INSPECT_NOT_SEL_ONLY and MANAGE_DUPLIDATES_INSPECT_SEL_ONLY.
+//                      Added, EEID_TOGGLE_VALIDATION_BAR, EEID_SORT_REVERSE, EEID_PROPERTY_VALIDATION, EEID_CUSTOMIZE_VALIDATION
 
 #pragma once
 
@@ -257,6 +261,8 @@
 #define E_SEL_CONTAINS_NEWLINE				_HRESULT_TYPEDEF_(0xa0000016L)  // used internally
 #define E_SEL_SAME_LINE						_HRESULT_TYPEDEF_(0xa0000017L)  // used internally
 #define E_FILTER_NOT_SUPPORTED				_HRESULT_TYPEDEF_(0xa0000018L)
+#define E_SEL_CONTAINS_READONLY				_HRESULT_TYPEDEF_(0xa0000019L)
+#define E_EMPTY_MULTI_SEL					_HRESULT_TYPEDEF_(0xa0000020L)
 
 #define S_MATCHED							_HRESULT_TYPEDEF_(0x20000001L)
 #define S_MATCHED_IGNORED					_HRESULT_TYPEDEF_(0x20000002L)
@@ -268,6 +274,7 @@
 #define CLR_NONE                0xFFFFFFFFL
 #endif
 
+#define REG_VERISON_19_0        26
 #define REG_VERISON_18_7        25
 #define REG_VERISON_18_6        24
 #define REG_VERISON_18_1        23
@@ -283,7 +290,7 @@
 #define REG_VERSION_13          13
 #define REG_VERSION_10          10
 #define REG_VERSION_3           3  // v3
-#define REG_VERSION             REG_VERISON_18_7
+#define REG_VERSION             REG_VERISON_19_0
 
 #define UPDATE_TREE_NONE			0
 #define UPDATE_OUTLINE				1
@@ -295,6 +302,7 @@
 #define INDENT_CUSTOM				2
 #define INDENT_BRACKETS				3
 #define INDENT_CUSTOM_BEGIN_END		4
+#define INDENT_TABS					5
 #define INDENT_BITS_MASK			7
 
 #define WORK_OUTLINE_ALL			1
@@ -447,7 +455,11 @@
 #define CODEPAGE_SAME_AS_DOC		66308  // internal use only
 #define CODEPAGE_MORE				66309  // internal use only
 
+#ifdef _WIN64
 #define MAX_UNDO_COUNT			0x08000000
+#else
+#define MAX_UNDO_COUNT			0x00800000
+#endif
 #define MIN_UNDO_COUNT			0x100
 
 #define MAX_PLUG_IN_NAME        MAX_PATH
@@ -571,8 +583,11 @@
 #define SMART_COLOR_RULER_CURR			94
 #define SMART_COLOR_OPEN_FILTER			95  // v17.8
 #define SMART_COLOR_MULTI_SELECTION		96  // v18.6
+#define SMART_COLOR_VALIDATOR_ERROR		97  // v19.0
+#define SMART_COLOR_VALIDATOR_WARNING	98  // v19.0
+#define SMART_COLOR_VALIDATOR_MESSAGE	99  // v19.0
 
-#define MAX_SMART_COLOR					97  // 96
+#define MAX_SMART_COLOR					100  // 96
 
 #define SMART_COLOR_INVALID				MAX_SMART_COLOR
 
@@ -2949,18 +2964,23 @@ inline BOOL Editor_GetColor( HWND hwnd, BOOL bFind, UINT nIndex, COLORREF* pclrT
 #define SORT_DATE								0x00080000
 #define SORT_SELECTION_ONLY						0x00040000
 #define SORT_RANDOM								0x00008000
+#define SORT_REVERSE							0x00006000
+#define SORT_IPV4								0x00004000
+#define SORT_IPV6								0x00002000
+#define SORT_INSPECT_NOT_SEL_ONLY				0x00000200
 #define MANAGE_DUPLICATES_ADJACENT_ONLY			0x00020000
 #define MANAGE_DUPLICATES_IGNORE_EMPTY_LINES	0x00010000
 #define MANAGE_DUPLICATES_INCLUDE_ALL			0x00008000
 #define MANAGE_DUPLICATES_LARGE_TEST			0x00004000
 #define MANAGE_DUPLICATES_IGNORE_EMPTY_CELLS	0x00002000
 #define MANAGE_DUPLICATES_SELECTION_ONLY		SORT_SELECTION_ONLY
+#define MANAGE_DUPLIDATES_INSPECT_SEL_ONLY		0x00000100
 #define MANAGE_DUPLICATES_BOOKMARK				0x00200000
 #define MANAGE_DUPLICATES_IGNORE_CASE			NORM_IGNORECASE   // 1
 
 #define SORT_MASK				(NORM_IGNORECASE|NORM_IGNOREKANATYPE|NORM_IGNORENONSPACE|NORM_IGNORESYMBOLS|NORM_IGNOREWIDTH|SORT_STRINGSORT|SORT_DIGITSASNUMBERS)   // 0x0003100f
-#define SORT_MASK_ALL			(SORT_MASK | SORT_IGNORE_PREFIX | SORT_LENGTH_VIEW | SORT_STABLE | SORT_BINARY_COMPARISON | SORT_UNQUOTE_CELLS)
-#define MANAGE_DUPLICATES_MASK	(MANAGE_DUPLICATES_IGNORE_EMPTY_LINES | MANAGE_DUPLICATES_BOOKMARK | MANAGE_DUPLICATES_ADJACENT_ONLY | MANAGE_DUPLICATES_INCLUDE_ALL | MANAGE_DUPLICATES_IGNORE_CASE | MANAGE_DUPLICATES_LARGE_TEST | MANAGE_DUPLICATES_IGNORE_EMPTY_CELLS)
+#define SORT_MASK_ALL			(SORT_MASK | SORT_IGNORE_PREFIX | SORT_LENGTH_VIEW | SORT_STABLE | SORT_BINARY_COMPARISON | SORT_UNQUOTE_CELLS | SORT_INSPECT_NOT_SEL_ONLY)
+#define MANAGE_DUPLICATES_MASK	(MANAGE_DUPLICATES_IGNORE_EMPTY_LINES | MANAGE_DUPLICATES_BOOKMARK | MANAGE_DUPLICATES_ADJACENT_ONLY | MANAGE_DUPLICATES_INCLUDE_ALL | MANAGE_DUPLICATES_IGNORE_CASE | MANAGE_DUPLICATES_LARGE_TEST | MANAGE_DUPLICATES_IGNORE_EMPTY_CELLS | MANAGE_DUPLIDATES_INSPECT_SEL_ONLY)
 #define DEF_SORT_OPTIONS		(SORT_IGNORE_PREFIX)
 
 typedef struct _GET_CELL_INFO {
@@ -3586,7 +3606,7 @@ inline int Editor_Compare( HWND hwnd, UINT nFlags, LPCWSTR pszDocument1, LPCWSTR
 #define CSV_INVALID_QUOTES				0x00000008
 #define CSV_INCONSISTENT_COLUMNS		0x00000010
 #define CSV_NOT_CSV						0x00000020
-
+#define CSV_RETRY_SINGLE_THREAD			0x00000040  // internal use
 
 #define DPI_OPTIONS_UNAWARE						0
 #define DPI_OPTIONS_SYSTEM						1
@@ -3738,7 +3758,7 @@ inline int Editor_Compare( HWND hwnd, UINT nFlags, LPCWSTR pszDocument1, LPCWSTR
 #define FLAG_FIND_RETURN_COUNT			(FLAG_FIND_COUNT | FLAG_FIND_BOOKMARK | FLAG_FIND_SELECT_ALL | FLAG_FIND_EXTRACT | FLAG_FIND_FILTER)  // internal use only
 #define FLAG_FIND_SAVE_UNIQUE_MASK		(FLAG_FIND_IGNORE_BINARY | FLAG_FIND_SHOW_IGNORED | FLAG_FIND_OUTPUT | FLAG_FIND_FILTER | FLAG_FIND_FILENAMES_ONLY | FLAG_FIND_OUTPUT_DISPLAY)  // internal use only
 
-#define DEFAULT_FIND_FLAG				(FLAG_FIND_AROUND)
+#define DEFAULT_FIND_FLAG				(FLAG_FIND_AROUND | FLAG_FIND_OUTPUT_DISPLAY)
 #define DEFAULT_ADD_OCCURRENCE			(FLAG_FIND_CASE | FLAG_FIND_ONLY_WORD)
 #define DEFAULT_FILTER_FLAG				(FLAG_FIND_INCREMENTAL)
 
@@ -3890,6 +3910,27 @@ inline int Editor_Compare( HWND hwnd, UINT nFlags, LPCWSTR pszDocument1, LPCWSTR
 #define DELETE_SPACE_END_YES			1
 #define DELETE_SPACE_END_EXCEPT_CURSOR	2
 
+#define VALIDATOR_SHOW_NONE			0
+#define VALIDATOR_SHOW_OPENED		1
+#define VALIDATOR_SHOW_ON_ERRORS	2
+#define VALIDATOR_SHOW_MASK			3
+
+#define VALIDATOR_ENABLED			4
+
+#define VALIDATOR_TYPE_HTML			0x00
+#define VALIDATOR_TYPE_CSS			0x10
+#define VALIDATOR_TYPE_JSON			0x20
+#define VALIDATOR_TYPE_CSV			0x30
+#define VALIDATOR_TYPE_XML			0x40
+#define VALIDATOR_TYPE_MASK			0x70
+#define MAX_VALIDATOR_TYPE			5
+
+#define DEF_VALIDATOR_HTML			(VALIDATOR_ENABLED | VALIDATOR_SHOW_ON_ERRORS | VALIDATOR_TYPE_HTML)
+#define DEF_VALIDATOR_CSS			(VALIDATOR_ENABLED | VALIDATOR_SHOW_ON_ERRORS | VALIDATOR_TYPE_CSS)
+#define DEF_VALIDATOR_JSON			(VALIDATOR_ENABLED | VALIDATOR_SHOW_ON_ERRORS | VALIDATOR_TYPE_JSON)
+#define DEF_VALIDATOR_CSV			(VALIDATOR_ENABLED | VALIDATOR_SHOW_ON_ERRORS | VALIDATOR_TYPE_CSV)
+#define DEF_VALIDATOR_XML			(VALIDATOR_ENABLED | VALIDATOR_SHOW_ON_ERRORS | VALIDATOR_TYPE_XML)
+
 class CCustomizeInfo
 {
 public:
@@ -3918,7 +3959,10 @@ public:
 	bool		m_bPreferUtf8;		// v14.6
     UINT        m_nAutoSaveTime;    // PRO only  auto save time  (0 - MAX_AUTO_SAVE_TIME (9999))
     int         m_nCheckFileChanged; // v3: changed by another program  (0 - MAX_CHECK_FILE_CHANGED-1)
-    UINT        m_nDummy; // m_nUndoBufferSize;  // PRO only  undo max number
+	BYTE        m_byteDummy4;      // was        m_nDummy; // m_nUndoBufferSize;  // PRO only  undo max number
+	BYTE        m_byteDummy3;
+	BYTE        m_byteDummy2;
+	BYTE        m_byteDummy1;
     int         m_nEncodingNew;     // v3: encoding for new files  (1 - CODEPAGE_HEX)
     int         m_nCrLfNew;         // v3: how to return for new files  (FLAG_CR_AND_LF - FLAG_LF_ONLY)
 	bool         m_bShowOneLineAbove;     // v15.4
@@ -3994,7 +4038,7 @@ public:
     bool        m_bDummy5;      // was m_bMailTo;          // clicking mail address sends mail
     bool        m_bLinkDblclick;      // obsolete  // PRO only enable double clicking only
     bool        m_bFullPath;        // PRO only show file name with full path
-    bool        m_b7BitKanji;       // OBSOLETE  7 bit kanji  
+	BYTE        m_byteValidator;      // was bool m_b7BitKanji;       // OBSOLETE  7 bit kanji  
     bool        m_bCrLfSeparateMark;    // PRO only  show CR and LF with different marks 
     bool        m_bShowRuler;       // show ruler
     bool        m_bAutoSave;        // PRO only auto save
@@ -4842,6 +4886,16 @@ public:
 // v18.7
 #define EEID_CLEAR_CONTENTS               4033
 
+// v18.9
+#define EEID_SORT_IPV4_A                  4034
+#define EEID_SORT_IPV4_D                  4035
+#define EEID_SORT_IPV6_A                  4036
+#define EEID_SORT_IPV6_D                  4037
+
+// v19.0
+#define EEID_TOGGLE_VALIDATION_BAR        4038
+#define EEID_SORT_REVERSE                 4039
+
 // other commands
 #define EEID_FILE_MRU_FILE1               4609  // to EEID_FILE_MRU_FILE1 + 63
 #define EEID_MRU_FONT1                    4736  // to EEID_MRU_FONT1 + 63
@@ -4919,6 +4973,7 @@ public:
 #define EEID_PROPERTY_INDENT              8977
 #define EEID_PROPERTY_FILE_NEW            8978
 #define EEID_PROPERTY_FILE_SAVE           8979
+#define EEID_PROPERTY_VALIDATION          8980
 
 #define EEID_CUSTOMIZE_FILE               9040
 #define EEID_CUSTOMIZE_SEARCH             9041
@@ -4942,6 +4997,7 @@ public:
 #define EEID_CUSTOMIZE_WORKSPACE          9059
 #define EEID_CUSTOMIZE_SYNC               9060
 #define EEID_CUSTOMIZE_OPTIMIZATION       9061
+#define EEID_CUSTOMIZE_VALIDATION         9062
 
 // for Projects plug-in
 #ifdef USE_PROJECTS_PLUGIN
