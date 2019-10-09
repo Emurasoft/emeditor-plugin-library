@@ -74,6 +74,19 @@ HINSTANCE GetInstancePath( LPCTSTR szPath, bool bResourceOnly );
 #pragma warning( push )
 #pragma warning( disable : 4127 ) // C4127: conditional expression is constant
 
+extern HINSTANCE EEGetLocaleInstanceHandle();
+extern HINSTANCE EEGetInstanceHandle();
+extern BOOL IsFileExist( LPCTSTR pszPathName );
+extern BOOL GetModuleFile( LPTSTR szFileName );
+extern void GetModuleFilePath( LPCTSTR szFile, LPTSTR szPath );
+extern HINSTANCE GetInstancePath( LPCTSTR szPath );
+extern WORD EEGetCmdID();
+extern CETLFrameX* GetFrameFromFrame( HWND hwndFrame );
+extern CETLFrameX* GetFrame( HWND hwnd );
+extern CETLFrameX* GetFrameFromDlg( HWND hwnd );
+extern CETLFrameX* GetFrameFromView( HWND hwndView );
+
+
 // global data definition
 class CETLData
 {
@@ -622,18 +635,6 @@ public:
 	}
 };
 
-
-extern HINSTANCE EEGetLocaleInstanceHandle();
-extern HINSTANCE EEGetInstanceHandle();
-extern BOOL IsFileExist( LPCTSTR pszPathName );
-extern BOOL GetModuleFile( LPTSTR szFileName );
-extern void GetModuleFilePath( LPCTSTR szFile, LPTSTR szPath );
-extern HINSTANCE GetInstancePath( LPCTSTR szPath );
-extern WORD EEGetCmdID();
-extern CETLFrameX* GetFrameFromFrame( HWND hwndFrame );
-extern CETLFrameX* GetFrame( HWND hwnd );
-extern CETLFrameX* GetFrameFromDlg( HWND hwnd );
-extern CETLFrameX* GetFrameFromView( HWND hwndView );
 
 #ifndef EE_EXTERN_ONLY
 HINSTANCE EEGetLocaleInstanceHandle()
