@@ -274,6 +274,8 @@
 #define E_FAILED_TO_MAP_VIEW				_HRESULT_TYPEDEF_(0xa0000024L)
 #define E_GREP_LARGER_THAN_2G				_HRESULT_TYPEDEF_(0xa0000025L)
 #define E_BACKUP_COPY						_HRESULT_TYPEDEF_(0xa0000026L)
+#define E_DISCARD_UNDO						_HRESULT_TYPEDEF_(0xa0000027L)  // used internally
+#define E_SEL_TOO_LONG						_HRESULT_TYPEDEF_(0xa0000028L)  // used internally
 
 #define S_MATCHED							_HRESULT_TYPEDEF_(0x20000001L)
 #define S_MATCHED_IGNORED					_HRESULT_TYPEDEF_(0x20000002L)
@@ -4999,6 +5001,9 @@ public:
 // v19.2
 #define EEID_VIEW_ALL_MARKS               4040
 
+// v19.5
+#define EEID_NEW_FEATURES                 4041
+
 // other commands
 #define EEID_FILE_MRU_FILE1               4609  // to EEID_FILE_MRU_FILE1 + 63
 #define EEID_MRU_FONT1                    4736  // to EEID_MRU_FONT1 + 63
@@ -5017,8 +5022,9 @@ public:
 #define EEID_MACRO1                       9216  // to EEID_MACRO1 + 1023
 #define EEID_CUSTOM_REBAR1                21504 // to EEID_CUSTOM_REBAR1 + 255
 #define EEID_SELECT_DICTIONARY			  22016 // to EEID_SELECT_DICTIONARY + 255
-#define EEID_SV_MODE					  22528 // to EEID_SV_MODE + 7
-#define EEID_CONVERT_TO_SV                22656 // to EEID_CONVERT_TO_SV + 7
+#define EEID_MARKER1                      22272 // to EEID_MARKER1 + 255
+#define EEID_SV_MODE					  22528 // to EEID_SV_MODE + 63
+#define EEID_CONVERT_TO_SV                22656 // to EEID_CONVERT_TO_SV + 63
 #define EEID_WORKSPACE_RECENT_FILE1       22784 // to EEID_WORKSPACE_RECENT_FILE1 + 63
 #define EEID_UNDO_RECENT				  22848 // to EEID_UNDO_RECENT + 63
 #define EEID_REDO_RECENT				  22912 // to EEID_REDO_RECENT + 63
