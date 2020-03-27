@@ -236,6 +236,7 @@
 //                      Added the EI_GET_CHAR_TYPE command to the EE_INFO message.
 //                      Added the FLAG_CONVERT_CUSTOM, FLAG_RIGHT_SINGLE_QUOTATION, and FLAG_RIGHT_DOUBLE_QUOTATION flags and szChars parameter to the EE_CONVERT message and Editor_Convert inline function.
 // v19.2                Added the EEID_VIEW_ALL_MARKS coommand.
+// v19.7                Added the EDIT_COLUMN_INFO structure, EE_EDIT_COLUMN message, Editor_EditColumn inline function
 
 #pragma once
 
@@ -3519,6 +3520,30 @@ inline HRESULT Editor_Numbering( HWND hwnd, LPCWSTR pszFirst, LPCWSTR pszInc, IN
 	return (HRESULT)SNDMSG( (hwnd), EE_NUMBERING, (WPARAM)&ni, 0 );
 }
 
+#define COLUMN_MOVE			0
+#define COLUMN_COPY			1
+#define COLUMN_CONCAT		2
+#define COLUMN_COALESCE		3
+#define COLUMN_ACTION_MASK	7
+
+typedef struct _EDIT_COLUMN_INFO {
+	UINT cbSize;
+	UINT nFlags;
+	int  iColumn1;
+	int  iColumn2;
+	int  iColumnTo;
+	LPCWSTR pszInsert;
+} EDIT_COLUMN_INFO;
+
+#define EE_EDIT_COLUMN (EE_FIRST+121)
+
+inline HRESULT Editor_EditColumn( HWND hwnd, UINT nFlags, int iColumnFrom1, int iColumnFrom2, int iColumnTo, LPCWSTR pszInsert )
+{
+	_ASSERT( hwnd && IsWindow( hwnd ) );
+	EDIT_COLUMN_INFO mi = { sizeof( mi ), nFlags, iColumnFrom1, iColumnFrom2, iColumnTo, pszInsert };
+	return (HRESULT)SNDMSG( ( hwnd ), EE_EDIT_COLUMN, (WPARAM)&mi, 0 );
+}
+
 //
 #define EE_LAST                 (EE_FIRST+255)
 
@@ -3813,7 +3838,6 @@ inline HRESULT Editor_Numbering( HWND hwnd, LPCWSTR pszFirst, LPCWSTR pszInc, IN
 #define FLAG_FIND_SEPARATE_CRLF			0x0000'0001'0000'0000ull
 #define FLAG_FIND_REGEX_BOOST			0x0000'0002'0000'0000ull
 #define FLAG_FIND_REGEX_ONIGMO			0x0000'0004'0000'0000ull
-//#define FLAG_FIND_COLUMN				0x0000'0008'0000'0000ull  // EE_FIND only
 #define FLAG_FIND_INSERT_COLUMN			0x0000'0010'0000'0000ull  // EE_REPLACE only
 #define FLAG_FIND_MATCH_NL				0x0000'0020'0000'0000ull
 #define FLAG_FIND_CR_ONLY				0x0000'0040'0000'0000ull
@@ -3824,8 +3848,6 @@ inline HRESULT Editor_Numbering( HWND hwnd, LPCWSTR pszFirst, LPCWSTR pszInc, IN
 #define FLAG_FIND_UNBOOKMARKED_ONLY		0x0000'0800'0000'0000ull
 #define FLAG_FIND_NUMBER_RANGE			0x0000'1000'0000'0000ull  // EE_FILTER only
 #define FLAG_FIND_COUNT_FREQUENCY       0x0008'0000'0000'0000ull
-#define FLAG_FIND_BEGIN_NL				0x0010'0000'0000'0000ull  // internal use only
-#define FLAG_FIND_END_NL				0x0020'0000'0000'0000ull  // internal use only
 #define FLAG_FIND_NO_OVERLAP			0x0040'0000'0000'0000ull
 #define FLAG_FIND_LOOKAROUND			0x0080'0000'0000'0000ull
 #define FLAG_FIND_REPLACE_LATER			0x0100'0000'0000'0000ull  // internal use only
@@ -5016,6 +5038,10 @@ public:
 // v19.6
 #define EEID_MINIMAP_HOVER                4044
 #define EEID_CLIPBOARD_HISTORY            4045
+
+// v19.7
+#define EEID_MOVE_COLUMN                  4046
+#define EEID_COMBINE_COLUMNS              4047
 
 // other commands
 #define EEID_FILE_MRU_FILE1               4609  // to EEID_FILE_MRU_FILE1 + 63
