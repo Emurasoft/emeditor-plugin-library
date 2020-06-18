@@ -238,6 +238,7 @@
 // v19.2                Added the EEID_VIEW_ALL_MARKS coommand.
 // v19.7                Added the EDIT_COLUMN_INFO structure, EE_EDIT_COLUMN message, Editor_EditColumn inline function
 // v19.8                Added the EE_CONVERT_CSV message, Editor_ConvertCsv inline function, CONVERT_CSV_INFO structure.
+// v19.9                Added the EE_SPLIT_COLUMN message, Editor_SplitColumn inline function, SPLIT_COLUMN_INFO structure.
 
 #pragma once
 
@@ -285,6 +286,7 @@
 #define S_DIFF								_HRESULT_TYPEDEF_(0x20000003L)
 #define S_BINARY_FILE						_HRESULT_TYPEDEF_(0x20000004L)
 #define S_SKIPPED_IGNORED					_HRESULT_TYPEDEF_(0x20000005L)
+#define S_OPEN_DOCUMENTS_ROUNDED			_HRESULT_TYPEDEF_(0x20000006L)  // used internally
 
 #define DEFAULT_DPI		96
 
@@ -2990,7 +2992,7 @@ inline BOOL Editor_GetColor( HWND hwnd, BOOL bFind, UINT nIndex, COLORREF* pclrT
 #define SORT_IGNORE_PREFIX						0x20000000
 #define SORT_LENGTH_VIEW						0x10000000
 #define SORT_DELETE_DUPLICATE					0x08000000
-#define SORT_ENABLED							0x04000000  // internal use only
+#define SORT_ENABLED							0x04000000
 #define SORT_STABLE								0x02000000
 #define SORT_BINARY_COMPARISON					0x01000000
 #define SORT_UNQUOTE_CELLS						0x00800000
@@ -3019,6 +3021,7 @@ inline BOOL Editor_GetColor( HWND hwnd, BOOL bFind, UINT nIndex, COLORREF* pclrT
 #define SORT_MASK_ALL			(SORT_MASK | SORT_IGNORE_PREFIX | SORT_LENGTH_VIEW | SORT_STABLE | SORT_BINARY_COMPARISON | SORT_UNQUOTE_CELLS | SORT_INSPECT_NOT_SEL_ONLY | SORT_GROUP_IDENTICAL)
 #define MANAGE_DUPLICATES_MASK	(MANAGE_DUPLICATES_IGNORE_EMPTY_LINES | MANAGE_DUPLICATES_BOOKMARK | MANAGE_DUPLICATES_ADJACENT_ONLY | MANAGE_DUPLICATES_INCLUDE_ALL | MANAGE_DUPLICATES_IGNORE_CASE | MANAGE_DUPLICATES_LARGE_TEST | MANAGE_DUPLICATES_IGNORE_EMPTY_CELLS | MANAGE_DUPLIDATES_INSPECT_SEL_ONLY)
 #define DEF_SORT_OPTIONS		(SORT_IGNORE_PREFIX)
+#define SORT_SPLIT_COLUMN_MASK  (SORT_MASK | SORT_IGNORE_PREFIX | SORT_LENGTH_VIEW | SORT_STABLE | SORT_BINARY_COMPARISON | SORT_GROUP_IDENTICAL | SORT_DELETE_DUPLICATE | SORT_ASCEND | SORT_ASCEND | SORT_LENGTH | SORT_OCCURRENCE | SORT_WORDS | SORT_DATE | SORT_RANDOM | SORT_REVERSE | SORT_IPV4 | SORT_IPV6)
 
 typedef struct _GET_CELL_INFO {
     UINT_PTR	cch;		// in
@@ -3167,6 +3170,12 @@ typedef struct _FIND_REPLACE_INFO {
 	UINT64   nMatchedLines;
 } FIND_REPLACE_INFO;
 
+typedef struct _BATCH_INFO {
+	UINT   cbSize;
+	UINT   nBatchCount;  // number of FIND_REPLACE_INFO structures in lParam;
+	UINT64 nBatchFlags;
+	UINT64 nTotalCount;
+} BATCH_INFO;
 
 inline HRESULT Editor_FindReplace( HWND hwnd, UINT64 nFlags, LPCWSTR pszFind, LPCWSTR pszReplace, UINT64* pnCount, UINT64* pnMatchedLines )
 {
@@ -3183,6 +3192,17 @@ inline HRESULT Editor_FindReplace( HWND hwnd, UINT64 nFlags, LPCWSTR pszFind, LP
 	return hr;
 }
 
+inline HRESULT Editor_BatchFindReplace( HWND hwnd, FIND_REPLACE_INFO* pBatchArray, UINT nBatchCount, UINT64 nBatchFlags, UINT64* pnTotalCount )
+{
+	BATCH_INFO bi = { sizeof( BATCH_INFO ) };
+	bi.nBatchCount = nBatchCount;
+	bi.nBatchFlags = nBatchFlags;
+	HRESULT hr = (HRESULT)SNDMSG( ( hwnd ), EE_FIND_REPLACE, (WPARAM)&bi, (LPARAM)pBatchArray );
+	if( SUCCEEDED( hr ) ) {
+		if( pnTotalCount )  *pnTotalCount = bi.nTotalCount;
+	}
+	return hr;
+}
 
 #define EE_GET_FILTER (EE_FIRST+109)
 
@@ -3527,6 +3547,8 @@ inline HRESULT Editor_Numbering( HWND hwnd, LPCWSTR pszFirst, LPCWSTR pszInc, IN
 #define COLUMN_COPY			1
 #define COLUMN_CONCAT		2
 #define COLUMN_COALESCE		3
+#define COLUMN_SPLIT_TO_COLUMNS	4
+#define COLUMN_SPLIT_TO_LINES	5
 #define COLUMN_ACTION_MASK	7
 
 typedef struct _EDIT_COLUMN_INFO {
@@ -3567,6 +3589,26 @@ inline HRESULT Editor_ConvertCsv( HWND hwnd, int iDestMode, UINT nFlags = 0, int
 	_ASSERT( hwnd && IsWindow( hwnd ) );
 	CONVERT_CSV_INFO info = { sizeof( info ), iDestMode, nFlags, nSepCount, pcxSepWidths };
 	return (HRESULT)SNDMSG( hwnd, EE_CONVERT_CSV, (WPARAM)&info, 0 );
+}
+
+typedef struct _SPLIT_COLUMN_INFO {
+	UINT cbSize;
+	UINT nType;
+	UINT nFlags;
+	int  iColumn1;
+	int  iColumn2;
+	int  nLimit;
+	LPCWSTR pszSeparator;
+	LPCWSTR pszLocale;
+} SPLIT_COLUMN_INFO;
+
+#define EE_SPLIT_COLUMN (EE_FIRST+123)
+
+inline HRESULT Editor_SplitColumn( HWND hwnd, UINT nType, UINT nFlags, int iColumnFrom1, int iColumnFrom2, int nLimit, LPCWSTR pszSeparator, LPCWSTR pszLocale )
+{
+	_ASSERT( hwnd && IsWindow( hwnd ) );
+	SPLIT_COLUMN_INFO into = { sizeof( into ), nType, nFlags, iColumnFrom1, iColumnFrom2, nLimit, pszSeparator, pszLocale };
+	return (HRESULT)SNDMSG( ( hwnd ), EE_SPLIT_COLUMN, (WPARAM)&into, 0 );
 }
 
 //
@@ -3827,6 +3869,7 @@ inline HRESULT Editor_ConvertCsv( HWND hwnd, int iDestMode, UINT nFlags = 0, int
 // EE_FIND, EE_REPLACE, EE_FIND_IN_FILES, EE_REPLACE_IN_FILES, EE_MATCH_REGEX, EE_FIND_REGEX
 #define FLAG_FIND_NEXT					0x0000'0000'0000'0001ull  // EE_FIND only
 #define FLAG_FILTER_ENABLED				0x0000'0000'0000'0001ull  // internal use only
+#define FLAG_FIND_BATCH_START			0x0000'0000'0000'0001ull  // internal use only
 #define FLAG_FIND_CASE					0x0000'0000'0000'0002ull  // EE_FIND, EE_REPLACE, EE_FIND_IN_FILES and EE_REPLACE_IN_FILES, EE_MATCH_REGEX and EE_FIND_REGEX
 #define FLAG_FIND_ESCAPE				0x0000'0000'0000'0004ull  // EE_FIND and EE_REPLACE, EE_FIND_IN_FILES and EE_REPLACE_IN_FILES
 #define FLAG_REPLACE_SEL_ONLY			0x0000'0000'0000'0008ull  // EE_REPLACE only
@@ -3894,7 +3937,7 @@ inline HRESULT Editor_ConvertCsv( HWND hwnd, int iDestMode, UINT nFlags = 0, int
 #define FLAG_FIND_SEL_ONLY				FLAG_REPLACE_SEL_ONLY  // EE_FIND only
 
 #define FLAG_FIND_LINE_ONLY				(FLAG_FIND_OUTPUT_DISPLAY)  // EE_FIND_IN_FILES only
-#define FLAG_FIND_MATCHED_ONLY			(FLAG_FIND_FILENAMES_ONLY+FLAG_FIND_OUTPUT_DISPLAY)  // EE_FIND_IN_FILES only
+#define FLAG_FIND_MATCHED_ONLY			(FLAG_FIND_FILENAMES_ONLY+FLAG_FIND_OUTPUT_DISPLAY)
 														  
 #define FLAG_FIND_OPEN_DIRECT			(FLAG_FIND_FILTER)
 #define FLAG_FIND_OPEN_FILTER			(FLAG_FIND_OUTPUT+FLAG_FIND_FILTER)
@@ -3905,16 +3948,16 @@ inline HRESULT Editor_ConvertCsv( HWND hwnd, int iDestMode, UINT nFlags = 0, int
 #define FLAG_FIND_EXTRACT_MASK			(FLAG_FIND_FILENAMES_ONLY | FLAG_FIND_OUTPUT_DISPLAY | FLAG_FIND_OUTPUT | FLAG_FIND_COUNT_FREQUENCY)
 #define FLAG_FIND_MASK_WITHOUT_EXTRACT (0x0000'0007'283f'83ffull | FLAG_FIND_BOL_EOL | FLAG_FIND_LOOKAROUND | FLAG_FIND_INSERT_COLUMN | FLAG_FIND_NUMBER_RANGE)
 #define FLAG_FIND_MASK					(FLAG_FIND_MASK_WITHOUT_EXTRACT | FLAG_FIND_EXTRACT_MASK)
-#define FLAG_BATCH_REPLACE_MASK			(FLAG_FIND_CASE | FLAG_FIND_ONLY_WORD | FLAG_FIND_REG_EXP | FLAG_FIND_EMBEDDED_NL | FLAG_FIND_SEPARATE_CRLF | FLAG_FIND_MATCH_DOT_NL | FLAG_FIND_REGEX_BOOST | FLAG_FIND_REGEX_ONIGMO)
+#define FLAG_BATCH_FIND_MASK			(FLAG_FIND_CASE | FLAG_FIND_ONLY_WORD | FLAG_FIND_REG_EXP | FLAG_FIND_NUMBER_RANGE | FLAG_FIND_ESCAPE)
+#define FLAG_BATCH_GREP_MASK			FLAG_BATCH_FIND_MASK
 #define FLAG_FILTER_MASK				(FLAG_FIND_CASE | FLAG_FIND_ESCAPE | FLAG_FIND_ONLY_WORD | FLAG_FIND_REG_EXP | FLAG_FIND_INCREMENTAL | FLAG_FIND_NEGATIVE | FLAG_FIND_NUMBER_RANGE)
 #define FLAG_ADVANCED_FILTER_MASK		(FLAG_FILTER_MASK | FLAG_FIND_LOGICAL_OR | FLAG_FIND_WHOLE_STRING | FLAG_FILTER_ENABLED | FLAG_FIND_MATCH_NL | FLAG_FIND_CR_ONLY | FLAG_FIND_LF_ONLY | FLAG_FIND_CR_LF | FLAG_FIND_NL_OTHERS | FLAG_FIND_BOOKMARKED_ONLY | FLAG_FIND_UNBOOKMARKED_ONLY)
 #define FLAG_MACRO_FILTER_MASK			((FLAG_ADVANCED_FILTER_MASK | FLAG_FIND_CONTINUE | FLAG_FIND_KEEP_PREVIOUS | FLAG_FIND_REMOVE_LAST) & ~FLAG_FILTER_ENABLED)
 #define FLAG_FIND_SAVE_MASK				((FLAG_GREP_MASK | FLAG_FIND_MASK) & ~(FLAG_FIND_NO_PROMPT | FLAG_FIND_BOOKMARK | FLAG_FIND_SAVE_HISTORY | FLAG_FIND_SELECT_ALL | FLAG_FIND_ADD_NEXT | FLAG_FIND_EXTRACT))
 
 #define FLAG_FIND_NOT_ONCE              (FLAG_FIND_COUNT | FLAG_FIND_SELECT_ALL | FLAG_FIND_REPLACE_LATER)  // internal use only
-#define FLAG_FIND_ONCE_ONLY             (FLAG_FIND_BOOKMARK | FLAG_FIND_EXTRACT | FLAG_FIND_FILTER | FLAG_FIND_UPDATE_MARKER)  // internal use only
 #define FLAG_FIND_SEARCH_ALL			(FLAG_FIND_COUNT | FLAG_FIND_BOOKMARK | FLAG_FIND_SELECT_ALL | FLAG_FIND_EXTRACT | FLAG_FIND_FILTER | FLAG_FIND_UPDATE_MARKER | FLAG_FIND_REPLACE_LATER)  // internal use only
-#define FLAG_FIND_RETURN_COUNT			(FLAG_FIND_COUNT | FLAG_FIND_BOOKMARK | FLAG_FIND_SELECT_ALL | FLAG_FIND_EXTRACT | FLAG_FIND_FILTER)  // internal use only
+#define FLAG_FIND_RETURN_COUNT			(FLAG_FIND_COUNT | FLAG_FIND_BOOKMARK | FLAG_FIND_SELECT_ALL | FLAG_FIND_EXTRACT | FLAG_FIND_FILTER | FLAG_REPLACE_ALL )  // internal use only
 #define FLAG_FIND_SAVE_UNIQUE_MASK		(FLAG_FIND_IGNORE_BINARY | FLAG_FIND_SHOW_IGNORED | FLAG_FIND_OUTPUT | FLAG_FIND_FILTER | FLAG_FIND_FILENAMES_ONLY | FLAG_FIND_OUTPUT_DISPLAY)  // internal use only
 
 #define DEFAULT_FIND_FLAG				(FLAG_FIND_AROUND | FLAG_FIND_OUTPUT_DISPLAY)
@@ -4197,7 +4240,7 @@ public:
     bool        m_bSaveInsertCR;    // PRO only insert returns when saving
     bool        m_bUseRecycleBin;   // PRO only use recylce bin to buckup
     bool        m_bAutoIndent;      // auto indent
-    bool		m_bWrapIndent;		// PRO only v7.00: auto indent for wrap position, used to be m_bOverwrite, v6.00 Obsolete
+    BYTE		m_bWrapIndent;		// PRO only v7.00: auto indent for wrap position, used to be m_bOverwrite, v6.00 Obsolete, a combination of two bits: 1 : on (include full-width space), 2 : on (ignore full-width space)
     bool        m_bHilite;          // highlight these words
     bool        m_bDummy6;	      // was m_bURL;             // link to URLs
     bool        m_bDummy5;      // was m_bMailTo;          // clicking mail address sends mail
@@ -5087,6 +5130,11 @@ public:
 #define EEID_UNICODE_NORM_FD              4054
 #define EEID_UNICODE_NORM_FKC             4055
 #define EEID_UNICODE_NORM_FKD             4056
+
+// v19.9
+#define EEID_SPLIT_COLUMN                 4057
+#define EEID_SEND_FEEDBACK                4058
+#define EEID_WRITE_REVIEW                 4059
 
 // other commands
 #define EEID_FILE_MRU_FILE1               4609  // to EEID_FILE_MRU_FILE1 + 63
