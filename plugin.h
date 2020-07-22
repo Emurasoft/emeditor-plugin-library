@@ -239,6 +239,10 @@
 // v19.7                Added the EDIT_COLUMN_INFO structure, EE_EDIT_COLUMN message, Editor_EditColumn inline function
 // v19.8                Added the EE_CONVERT_CSV message, Editor_ConvertCsv inline function, CONVERT_CSV_INFO structure.
 // v19.9                Added the EE_SPLIT_COLUMN message, Editor_SplitColumn inline function, SPLIT_COLUMN_INFO structure.
+// v20.0                Added JOIN_FLAG_CONTAIN, JOIN_FLAG_START_WITH, JOIN_FLAG_END_WITH, JOIN_FLAG_MATCH_SPLIT_BOTH, JOIN_FLAG_MATCH_SPLIT_ONE, and JOIN_FLAG_SWAP flags to the JOIN_INFO structure and Editor_Join inline function.
+//                      Added MANAGE_DUPLICATES_COMBINE flag, revised Editor_ManageDuplicates inline function, MANAGE_DUPLICATES_INFO structure.
+//                      Revised SPLIT_COLUMN_INFO, Editor_SplitColumn.
+//                      Added the BATCH_GREP_INFO structure and the Editor_BatchFindInFiles and Editor_BatchReplaceInFiles inline functions.
 
 #pragma once
 
@@ -280,6 +284,9 @@
 #define E_DISCARD_UNDO						_HRESULT_TYPEDEF_(0xa0000027L)  // used internally
 #define E_SEL_TOO_LONG						_HRESULT_TYPEDEF_(0xa0000028L)  // used internally
 #define E_UNSUPPORTED_ENCODING				_HRESULT_TYPEDEF_(0xa0000029L)  // used internally
+#define E_TOO_MANY_FILES					_HRESULT_TYPEDEF_(0xa0000030L)
+#define E_AOTHER_THREAD_REACHED_MAX			_HRESULT_TYPEDEF_(0xa0000031L)  // used internally
+#define E_DIFF_CRLF							_HRESULT_TYPEDEF_(0xa0000032L)  // used internally
 
 #define S_MATCHED							_HRESULT_TYPEDEF_(0x20000001L)
 #define S_MATCHED_IGNORED					_HRESULT_TYPEDEF_(0x20000002L)
@@ -287,6 +294,7 @@
 #define S_BINARY_FILE						_HRESULT_TYPEDEF_(0x20000004L)
 #define S_SKIPPED_IGNORED					_HRESULT_TYPEDEF_(0x20000005L)
 #define S_OPEN_DOCUMENTS_ROUNDED			_HRESULT_TYPEDEF_(0x20000006L)  // used internally
+#define S_FOUND_REACHED_MAX					_HRESULT_TYPEDEF_(0x20000007L)  // used internally
 
 #define DEFAULT_DPI		96
 
@@ -805,6 +813,18 @@ typedef struct _GREP_INFO_EX_OLD {
 	LPCWSTR pszFilesToIgnore;
 } GREP_INFO_EX_OLD;
 
+typedef struct _GREP_INFO_EX_V1 {
+	size_t  cbSize;         // sizeof( GREP_INFO_EX )
+	UINT    nCP;
+	UINT64  nFlags;
+	LPCWSTR pszFind;
+	LPCWSTR pszReplace;
+	LPCWSTR pszPath;
+	LPCWSTR pszBackupPath;
+	LPCWSTR pszFilesToIgnore;
+	UINT	nLimit;
+} GREP_INFO_EX_V1;
+
 typedef struct _GREP_INFO_EX {
 	size_t  cbSize;         // sizeof( GREP_INFO_EX )
 	UINT    nCP;
@@ -814,8 +834,21 @@ typedef struct _GREP_INFO_EX {
 	LPCWSTR pszPath;
 	LPCWSTR pszBackupPath;
 	LPCWSTR pszFilesToIgnore;
-	UINT	nLimit;   // new v18.1
+	UINT	nLimit;
+	UINT64 nTotalCount;  // new v20.0
 } GREP_INFO_EX;
+
+typedef struct _BATCH_GREP_INFO {
+	UINT cbSize;         // sizeof( BATCH_GREP_INFO )
+	UINT nBatchCount;
+	UINT64 nBatchFlags;
+	UINT64 nTotalCount;
+	LPCWSTR pszPath;
+	LPCWSTR pszBackupPath;
+	LPCWSTR pszFilesToIgnore;
+	UINT    nCP;
+	UINT	nLimit;
+} BATCH_GREP_INFO;
 
 typedef struct _GREP_INFOA {
     size_t  cbSize;         // sizeof( GREP_INFOA )
@@ -902,7 +935,7 @@ typedef struct _CUSTOM_BAR_INFO {
 	size_t  cbSize;
 	HWND	hwndCustomBar;
 	HWND	hwndClient;
-	LPCTSTR pszTitle;
+	LPCWSTR pszTitle;
 	int		iPos;
 } CUSTOM_BAR_INFO;
 
@@ -1050,7 +1083,7 @@ typedef struct _TOOLBAR_INFO {
 	size_t  cbSize;
 	HWND    hwndRebar;
 	HWND	hwndClient;
-	LPCTSTR pszTitle;
+	LPCWSTR pszTitle;
 	UINT	nMask;
 	UINT	nID;
 	UINT    nFlags;
@@ -2220,6 +2253,15 @@ inline BOOL Editor_InsertFileW( HWND hwnd, LOAD_FILE_INFO_EX* plfi, LPCWSTR szFi
     (BOOL)SNDMSG( (hwnd), EE_INSERT_FILEW, (WPARAM)plfi, (LPARAM)(LPCWSTR)(szFileName) )
 #endif
 
+typedef struct _FIND_REPLACE_INFO {
+	UINT	cbSize;
+	UINT64	 nFlags;
+	LPCWSTR	 pszFind;
+	LPCWSTR	 pszReplace;
+	UINT64	 nCount;
+	UINT64   nMatchedLines;
+} FIND_REPLACE_INFO;
+
 #define EE_FIND_IN_FILESA       (EE_FIRST+65)
   // wParam = 0
   // (GREP_INFOA*)lParam = pGrepInfo
@@ -2250,6 +2292,12 @@ inline BOOL Editor_FindInFiles( HWND hwnd, GREP_INFO_EX* pGrepInfo )
 {
 	_ASSERT( hwnd && IsWindow( hwnd ) );
 	return (BOOL)SNDMSG( (hwnd), EE_FIND_IN_FILESW, (WPARAM)0, (LPARAM)pGrepInfo );
+}
+
+inline BOOL Editor_BatchFindInFiles( HWND hwnd, FIND_REPLACE_INFO* pBatchArray, BATCH_GREP_INFO* pBatchGrepInfo )
+{
+	_ASSERT( hwnd && IsWindow( hwnd ) );
+	return (BOOL)SNDMSG( ( hwnd ), EE_FIND_IN_FILESW, (WPARAM)pBatchGrepInfo, (LPARAM)pBatchArray );
 }
 #else
 #define Editor_FindInFilesW( hwnd, pGrepInfo ) \
@@ -2286,6 +2334,12 @@ inline BOOL Editor_ReplaceInFiles( HWND hwnd, GREP_INFO_EX* pGrepInfo )
 {
 	_ASSERT( hwnd && IsWindow( hwnd ) );
 	return (BOOL)SNDMSG( hwnd, EE_REPLACE_IN_FILESW, (WPARAM)0, (LPARAM)pGrepInfo );
+}
+
+inline BOOL Editor_BatchReplaceInFiles( HWND hwnd, FIND_REPLACE_INFO* pBatchArray, BATCH_GREP_INFO* pGrepInfo )
+{
+	_ASSERT( hwnd && IsWindow( hwnd ) );
+	return (BOOL)SNDMSG( ( hwnd ), EE_REPLACE_IN_FILESW, (WPARAM)pGrepInfo, (LPARAM)pBatchArray );
 }
 #else
 #define Editor_ReplaceInFilesW( hwnd, pGrepInfo ) \
@@ -2486,9 +2540,9 @@ inline BOOL Editor_ToolbarShow( HWND hwnd, UINT nCustomRebarID, BOOL bVisible )
 
 #define EE_HELP							(EE_FIRST+84)
   // (UINT)wParam = nFlag (must be 0)
-  // (LPCTSTR)lParam = szPageURL
+  // (LPCWSTR)lParam = szPageURL
 
-inline void Editor_Help( HWND hwnd, LPCTSTR szPageURL )
+inline void Editor_Help( HWND hwnd, LPCWSTR szPageURL )
 {
 	_ASSERT( hwnd && IsWindow( hwnd ) );
     SNDMSG( (hwnd), EE_HELP, 0, (LPARAM)szPageURL );
@@ -3007,21 +3061,24 @@ inline BOOL Editor_GetColor( HWND hwnd, BOOL bFind, UINT nIndex, COLORREF* pclrT
 #define SORT_IPV6								0x00002000
 #define SORT_GROUP_IDENTICAL					0x00000400
 #define SORT_INSPECT_NOT_SEL_ONLY				0x00000200
+#define SORT_REMOVE_EMPTY                       0x00000200 // used by CombineLines
+#define MANAGE_DUPLICATES_COMBINE				0x80000000 // internal use only by CombineLines
 #define MANAGE_DUPLICATES_ADJACENT_ONLY			0x00020000
 #define MANAGE_DUPLICATES_IGNORE_EMPTY_LINES	0x00010000
 #define MANAGE_DUPLICATES_INCLUDE_ALL			0x00008000
-#define MANAGE_DUPLICATES_LARGE_TEST			0x00004000
 #define MANAGE_DUPLICATES_IGNORE_EMPTY_CELLS	0x00002000
 #define MANAGE_DUPLICATES_SELECTION_ONLY		SORT_SELECTION_ONLY
 #define MANAGE_DUPLIDATES_INSPECT_SEL_ONLY		0x00000100
 #define MANAGE_DUPLICATES_BOOKMARK				0x00200000
 #define MANAGE_DUPLICATES_IGNORE_CASE			NORM_IGNORECASE   // 1
+#define COMBINE_LINES_IGNORE_CASE               0x00000100
 
 #define SORT_MASK				(NORM_IGNORECASE|NORM_IGNOREKANATYPE|NORM_IGNORENONSPACE|NORM_IGNORESYMBOLS|NORM_IGNOREWIDTH|SORT_STRINGSORT|SORT_DIGITSASNUMBERS)   // 0x0003100f
 #define SORT_MASK_ALL			(SORT_MASK | SORT_IGNORE_PREFIX | SORT_LENGTH_VIEW | SORT_STABLE | SORT_BINARY_COMPARISON | SORT_UNQUOTE_CELLS | SORT_INSPECT_NOT_SEL_ONLY | SORT_GROUP_IDENTICAL)
-#define MANAGE_DUPLICATES_MASK	(MANAGE_DUPLICATES_IGNORE_EMPTY_LINES | MANAGE_DUPLICATES_BOOKMARK | MANAGE_DUPLICATES_ADJACENT_ONLY | MANAGE_DUPLICATES_INCLUDE_ALL | MANAGE_DUPLICATES_IGNORE_CASE | MANAGE_DUPLICATES_LARGE_TEST | MANAGE_DUPLICATES_IGNORE_EMPTY_CELLS | MANAGE_DUPLIDATES_INSPECT_SEL_ONLY)
-#define DEF_SORT_OPTIONS		(SORT_IGNORE_PREFIX)
+#define MANAGE_DUPLICATES_MASK	(MANAGE_DUPLICATES_IGNORE_EMPTY_LINES | MANAGE_DUPLICATES_BOOKMARK | MANAGE_DUPLICATES_ADJACENT_ONLY | MANAGE_DUPLICATES_INCLUDE_ALL | MANAGE_DUPLICATES_IGNORE_CASE | MANAGE_DUPLICATES_IGNORE_EMPTY_CELLS | MANAGE_DUPLIDATES_INSPECT_SEL_ONLY)
+#define DEF_SORT_OPTIONS		(SORT_IGNORE_PREFIX | SORT_BINARY_COMPARISON)
 #define SORT_SPLIT_COLUMN_MASK  (SORT_MASK | SORT_IGNORE_PREFIX | SORT_LENGTH_VIEW | SORT_STABLE | SORT_BINARY_COMPARISON | SORT_GROUP_IDENTICAL | SORT_DELETE_DUPLICATE | SORT_ASCEND | SORT_ASCEND | SORT_LENGTH | SORT_OCCURRENCE | SORT_WORDS | SORT_DATE | SORT_RANDOM | SORT_REVERSE | SORT_IPV4 | SORT_IPV6)
+#define COMBINE_LINES_FLAG_MASK (SORT_SPLIT_COLUMN_MASK | SORT_DELETE_DUPLICATE | COMBINE_LINES_IGNORE_CASE | SORT_REMOVE_EMPTY)
 
 typedef struct _GET_CELL_INFO {
     UINT_PTR	cch;		// in
@@ -3085,7 +3142,15 @@ inline int Editor_Filter( HWND hwnd, LPCWSTR szFilter, int iColumn, UINT64 nFlag
 #define JOIN_FLAG_SIMPLE_JOIN		0x0020
 #define JOIN_FLAG_IGNORE_HEADINGS_1	0x0040
 #define JOIN_FLAG_IGNORE_HEADINGS_2	0x0080
-#define JOIN_FLAG_MASK				0x00ff
+#define JOIN_FLAG_CONTAIN			0x0100
+#define JOIN_FLAG_START_WITH		0x0200
+#define JOIN_FLAG_END_WITH			0x0300
+#define JOIN_FLAG_MATCH_SPLIT_BOTH	0x0400
+#define JOIN_FLAG_MATCH_SPLIT_ONE	0x0500
+#define JOIN_FLAG_LIMIT_SPLITS		0x4000  // used internally
+#define JOIN_FLAG_SWAP				0x8000
+#define JOIN_FLAG_WHERE_MASK		0x0720
+#define JOIN_FLAG_MASK				0x87ff
 #define DEF_JOIN_FLAG				(JOIN_FLAG_IGNORE_HEADINGS_1 | JOIN_FLAG_IGNORE_HEADINGS_2)
 
 
@@ -3098,14 +3163,18 @@ typedef struct _JOIN_INFO {
 	LPCWSTR		pszColumn2;
 	LPCWSTR		pszSelect;
 	UINT		iDocument3;
+	int         nLimit;
+	LPCWSTR     pszSeparator;
 } JOIN_INFO;
 
+#define JOIN_INFO_V1_SIZE  CCSIZEOF_STRUCT(JOIN_INFO, iDocument3)
+#define JOIN_INFO_V2_SIZE  CCSIZEOF_STRUCT(JOIN_INFO, pszSeparator)
 
 #define EE_JOIN					 (EE_FIRST+106)
   // (JOIN_INFO*)wParam = pJoinInfo
   // returns (int)nCount
 
-inline int Editor_Join( HWND hwnd, UINT nFlags, LPCWSTR pszDocument1, LPCWSTR pszColumn1, LPCWSTR pszDocument2, LPCWSTR pszColumn2, LPCWSTR pszSelect, int* piDocument3 )
+inline int Editor_Join( HWND hwnd, UINT nFlags, LPCWSTR pszDocument1, LPCWSTR pszColumn1, LPCWSTR pszDocument2, LPCWSTR pszColumn2, LPCWSTR pszSelect, LPCWSTR pszSeparator, int nLimit, int* piDocument3 )
 {
 	_ASSERT( hwnd && IsWindow( hwnd ) );
 	JOIN_INFO ji;
@@ -3116,6 +3185,8 @@ inline int Editor_Join( HWND hwnd, UINT nFlags, LPCWSTR pszDocument1, LPCWSTR ps
 	ji.pszColumn1 = pszColumn1;
 	ji.pszColumn2 = pszColumn2;
 	ji.pszSelect = pszSelect;
+	ji.pszSeparator = pszSeparator;
+	ji.nLimit = nLimit;
     int nResult = (int)SNDMSG( (hwnd), EE_JOIN, (WPARAM)&ji, 0 );
 	if( nResult >= 0 && piDocument3 != NULL ) {
 		*piDocument3 = ji.iDocument3;
@@ -3160,15 +3231,6 @@ inline HRESULT Editor_ExecPlugin( HWND hwnd, LPCWSTR pszName, LONG nFlags, WPARA
 }
 
 #define EE_FIND_REPLACE	(EE_FIRST+108)
-
-typedef struct _FIND_REPLACE_INFO {
-	UINT	cbSize;
-	UINT64	 nFlags;
-	LPCWSTR	 pszFind;
-	LPCWSTR	 pszReplace;
-	UINT64	 nCount;
-	UINT64   nMatchedLines;
-} FIND_REPLACE_INFO;
 
 typedef struct _BATCH_INFO {
 	UINT   cbSize;
@@ -3225,23 +3287,43 @@ inline int Editor_GetFilter( HWND hwnd, int iFilter, LPWSTR pszFilter, UINT cchF
 
 #define EE_MANAGE_DUPLICATES (EE_FIRST+110)
 
-#define VER_MANAGE_DUPLICATES_INFO		1
+#define VER_MANAGE_DUPLICATES_INFO		2
 
-typedef struct _MANAGE_DUPLICATES_INFO {
+typedef struct _MANAGE_DUPLICATES_INFO_V1 {
 	UINT	nVer;
 	UINT	nFlags;
 	INT_PTR nFound;
 	int 	nNumOfColumns;
 	int*    anColumns;
-} MANAGE_DUPLICATES_INFO;
+} MANAGE_DUPLICATES_INFO_V1;
 
-inline HRESULT Editor_ManageDuplicates( HWND hwnd, UINT nFlags, int nNumOfColumns, int* anColumns, INT_PTR* pnFound )
+typedef struct _MANAGE_DUPLICATES_INFO_V2 {
+	UINT	nVer;
+	UINT	nFlags;
+	INT_PTR nFound;
+	int 	nNumOfColumns;
+	int* anColumns;
+	int 	nNumOfColumnsToCombine;
+	int* anColumnsToCombine;
+	LPCWSTR pszInsert;
+	UINT    nCombineFlags;
+	LPCWSTR pszLocale;
+} MANAGE_DUPLICATES_INFO_V2;
+
+#define MANAGE_DUPLICATES_INFO MANAGE_DUPLICATES_INFO_V2
+
+inline HRESULT Editor_ManageDuplicates( HWND hwnd, UINT nFlags, int nNumOfColumns, int* anColumns, INT_PTR* pnFound, int nNumOfColumnsToCombine = 0, int* anColumnsToCombine = NULL, LPCWSTR pszInsert = NULL, UINT nCombineFlags = 0, LPWSTR pszLocale = NULL )
 {
 	MANAGE_DUPLICATES_INFO mdi = { 0 };
 	mdi.nVer = VER_MANAGE_DUPLICATES_INFO;
 	mdi.nFlags = nFlags;
 	mdi.nNumOfColumns = nNumOfColumns;
 	mdi.anColumns = anColumns;
+	mdi.nNumOfColumnsToCombine = nNumOfColumnsToCombine;
+	mdi.anColumnsToCombine = anColumnsToCombine;
+	mdi.pszInsert = pszInsert;
+	mdi.nCombineFlags = nCombineFlags;
+	mdi.pszLocale = pszLocale;
 	HRESULT hr = (HRESULT)SNDMSG( (hwnd), EE_MANAGE_DUPLICATES, 0, (LPARAM)&mdi );
 	if( SUCCEEDED( hr ) ) {
 		if( pnFound )  *pnFound = mdi.nFound;
@@ -3595,8 +3677,8 @@ typedef struct _SPLIT_COLUMN_INFO {
 	UINT cbSize;
 	UINT nType;
 	UINT nFlags;
-	int  iColumn1;
-	int  iColumn2;
+	int* anColumns;
+	int nNumOfColumns;
 	int  nLimit;
 	LPCWSTR pszSeparator;
 	LPCWSTR pszLocale;
@@ -3604,10 +3686,10 @@ typedef struct _SPLIT_COLUMN_INFO {
 
 #define EE_SPLIT_COLUMN (EE_FIRST+123)
 
-inline HRESULT Editor_SplitColumn( HWND hwnd, UINT nType, UINT nFlags, int iColumnFrom1, int iColumnFrom2, int nLimit, LPCWSTR pszSeparator, LPCWSTR pszLocale )
+inline HRESULT Editor_SplitColumn( HWND hwnd, UINT nType, UINT nFlags, int* anColumns, int nNumOfColumns, int nLimit, LPCWSTR pszSeparator, LPCWSTR pszLocale )
 {
 	_ASSERT( hwnd && IsWindow( hwnd ) );
-	SPLIT_COLUMN_INFO into = { sizeof( into ), nType, nFlags, iColumnFrom1, iColumnFrom2, nLimit, pszSeparator, pszLocale };
+	SPLIT_COLUMN_INFO into = { sizeof( into ), nType, nFlags, anColumns, nNumOfColumns, nLimit, pszSeparator, pszLocale };
 	return (HRESULT)SNDMSG( ( hwnd ), EE_SPLIT_COLUMN, (WPARAM)&into, 0 );
 }
 
@@ -5135,6 +5217,9 @@ public:
 #define EEID_SPLIT_COLUMN                 4057
 #define EEID_SEND_FEEDBACK                4058
 #define EEID_WRITE_REVIEW                 4059
+
+// v20.0
+#define EEID_COMBINE_LINES                4060
 
 // other commands
 #define EEID_FILE_MRU_FILE1               4609  // to EEID_FILE_MRU_FILE1 + 63
