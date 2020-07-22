@@ -55,7 +55,7 @@
 #endif
 #endif
 
-LPCTSTR const szDefaultLang = _T("DefaultLang");
+LPCWSTR const szDefaultLang = _T("DefaultLang");
 
 // forward declaration
 #define DEFINE_CREATE(c) 
@@ -65,9 +65,9 @@ typedef CETLFrame<ETL_FRAME_CLASS_NAME> CETLFrameX;
 typedef std::map<HWND, CETLFrameX*> CETLFrameMap;
 CETLFrameX* _ETLCreateFrame();
 void _ETLDeleteFrame( CETLFrameX* pFrame );
-BOOL IsFileExist( LPCTSTR pszPathName );
-void GetModuleFilePath( LPCTSTR szFile, LPTSTR szPath );
-HINSTANCE GetInstancePath( LPCTSTR szPath, bool bResourceOnly );
+BOOL IsFileExist( LPCWSTR pszPathName );
+void GetModuleFilePath( LPCWSTR szFile, LPWSTR szPath );
+HINSTANCE GetInstancePath( LPCWSTR szPath, bool bResourceOnly );
 
 #define _ETL_IMPLEMENT CETLFrameX* _ETLCreateFrame() { CETLFrameX* pFrame = new ETL_FRAME_CLASS_NAME; return pFrame; } void _ETLDeleteFrame( CETLFrameX* pFrame ) { delete static_cast<ETL_FRAME_CLASS_NAME*>(pFrame); }
 
@@ -76,10 +76,10 @@ HINSTANCE GetInstancePath( LPCTSTR szPath, bool bResourceOnly );
 
 extern HINSTANCE EEGetLocaleInstanceHandle();
 extern HINSTANCE EEGetInstanceHandle();
-extern BOOL IsFileExist( LPCTSTR pszPathName );
-extern BOOL GetModuleFile( LPTSTR szFileName );
-extern void GetModuleFilePath( LPCTSTR szFile, LPTSTR szPath );
-extern HINSTANCE GetInstancePath( LPCTSTR szPath );
+extern BOOL IsFileExist( LPCWSTR pszPathName );
+extern BOOL GetModuleFile( LPWSTR szFileName );
+extern void GetModuleFilePath( LPCWSTR szFile, LPWSTR szPath );
+extern HINSTANCE GetInstancePath( LPCWSTR szPath );
 extern WORD EEGetCmdID();
 extern CETLFrameX* GetFrameFromFrame( HWND hwndFrame );
 extern CETLFrameX* GetFrame( HWND hwnd );
@@ -293,7 +293,7 @@ public:
 			lResult = pT->QueryUninstall( hwnd );
 			break;
 		case EP_SET_UNINSTALL:
-			lResult = pT->SetUninstall( hwnd, (LPTSTR)wParam, (LPTSTR)lParam );
+			lResult = pT->SetUninstall( hwnd, (LPWSTR)wParam, (LPWSTR)lParam );
 			break;
 		case EP_QUERY_PROPERTIES:
 			lResult = pT->QueryProperties( hwnd );
@@ -376,7 +376,7 @@ public:
 
 	void GetProfileString( LPCWSTR lpszEntry, LPWSTR lpszBuf, DWORD cchBufSize, LPCWSTR lpszDefault )
 	{
-		TCHAR szFileName[MAX_PATH];
+		WCHAR szFileName[MAX_PATH];
 		if( GetModuleFile( szFileName ) ) {
 			GetProfileString( EEREG_EMEDITORPLUGIN, szFileName, lpszEntry, lpszBuf, cchBufSize, lpszDefault );
 			return;
@@ -397,7 +397,7 @@ public:
 
 	int GetProfileInt( LPCWSTR lpszEntry, int nDefault )
 	{
-		TCHAR szFileName[MAX_PATH];
+		WCHAR szFileName[MAX_PATH];
 		if( GetModuleFile( szFileName ) ) {
 			return GetProfileInt( EEREG_EMEDITORPLUGIN, szFileName, lpszEntry, nDefault );
 		}
@@ -415,7 +415,7 @@ public:
 
 	DWORD GetProfileBinary( LPCWSTR lpszEntry, LPBYTE lpBuf, DWORD cbBufSize )
 	{
-		TCHAR szFileName[MAX_PATH];
+		WCHAR szFileName[MAX_PATH];
 		if( GetModuleFile( szFileName ) ) {
 			return GetProfileBinary( EEREG_EMEDITORPLUGIN, szFileName, lpszEntry, lpBuf, cbBufSize );
 		}
@@ -426,12 +426,12 @@ public:
 	{
 		_ASSERT( lpszEntry );
 		_ASSERT( lpszValue );
-		VERIFY( ERROR_SUCCESS == Editor_RegSetValue( m_hWnd, dwKey, pszConfig, lpszEntry, REG_SZ, (const LPBYTE)lpszValue, (lstrlen( lpszValue ) + 1) * sizeof( TCHAR ), 0 ) );
+		VERIFY( ERROR_SUCCESS == Editor_RegSetValue( m_hWnd, dwKey, pszConfig, lpszEntry, REG_SZ, (const LPBYTE)lpszValue, (lstrlen( lpszValue ) + 1) * sizeof( WCHAR ), 0 ) );
 	}
 
 	void WriteProfileString( LPCWSTR lpszEntry, LPCWSTR lpszValue )
 	{
-		TCHAR szFileName[MAX_PATH];
+		WCHAR szFileName[MAX_PATH];
 		if( GetModuleFile( szFileName ) ) {
 			WriteProfileString( EEREG_EMEDITORPLUGIN, szFileName, lpszEntry, lpszValue );
 		}
@@ -446,7 +446,7 @@ public:
 
 	void WriteProfileInt( LPCWSTR lpszEntry, int nValue )
 	{
-		TCHAR szFileName[MAX_PATH];
+		WCHAR szFileName[MAX_PATH];
 		if( GetModuleFile( szFileName ) ) {
 			WriteProfileInt( EEREG_EMEDITORPLUGIN, szFileName, lpszEntry, nValue );
 		}
@@ -461,7 +461,7 @@ public:
 
 	void WriteProfileBinary( LPCWSTR lpszEntry, const LPBYTE lpBuf, DWORD cbBufSize, bool bVariableSize )
 	{
-		TCHAR szFileName[MAX_PATH];
+		WCHAR szFileName[MAX_PATH];
 		if( GetModuleFile( szFileName ) ) {
 			WriteProfileBinary( EEREG_EMEDITORPLUGIN, szFileName, lpszEntry, lpBuf, cbBufSize, bVariableSize );
 		}
@@ -469,7 +469,7 @@ public:
 
 	void EraseProfile()
 	{
-		TCHAR szFileName[MAX_PATH];
+		WCHAR szFileName[MAX_PATH];
 		if( GetModuleFile( szFileName ) ) {
 			Editor_RegSetValue( m_hWnd, EEREG_EMEDITORPLUGIN, szFileName, NULL, REG_SZ, (const LPBYTE)NULL, 0, 0 );
 		}
@@ -477,16 +477,16 @@ public:
 
 	void EraseEntry( LPCWSTR lpszEntry )
 	{
-		TCHAR szFileName[MAX_PATH];
+		WCHAR szFileName[MAX_PATH];
 		if( GetModuleFile( szFileName ) ) {
 			Editor_RegSetValue( m_hWnd, EEREG_EMEDITORPLUGIN, szFileName, lpszEntry, REG_SZ, (const LPBYTE)NULL, 0, 0 );
 		}
 	}
 
-	BOOL IsLangExist( LPCTSTR szLang )
+	BOOL IsLangExist( LPCWSTR szLang )
 	{
 		if( szLang[0] != '.' ){
-			TCHAR szPath[MAX_PATH];
+			WCHAR szPath[MAX_PATH];
 			GetModuleFilePath( _T("mui"), szPath );
 			PathAppend( szPath, szLang );
 			return PathIsDirectory( szPath );
@@ -494,12 +494,12 @@ public:
 		return FALSE;
 	}
 
-	BOOL GetResourceFolder( LPTSTR szFolder, bool bSystemLang, LPCTSTR szLang )
+	BOOL GetResourceFolder( LPWSTR szFolder, bool bSystemLang, LPCWSTR szLang )
 	{
-		TCHAR szPath[MAX_PATH];
+		WCHAR szPath[MAX_PATH];
 		GetModuleFilePath( _T("mui"), szPath );
 		if( bSystemLang ){
-			TCHAR szFile[MAX_PATH];
+			WCHAR szFile[MAX_PATH];
 			UINT nLang = GetUserDefaultUILanguage();
 			StringCchPrintf( szFile, _countof( szFile ), _T("%u"), nLang );
 			if( IsLangExist( szFile ) ){
@@ -518,12 +518,12 @@ public:
 
 	}
 
-	BOOL GetAnyResourceFolder( LPTSTR szFolder )
+	BOOL GetAnyResourceFolder( LPWSTR szFolder )
 	{
 		// find anything available.
-		TCHAR szLang[MAX_PATH];
+		WCHAR szLang[MAX_PATH];
 		szLang[0] = 0;
-		TCHAR szPath[MAX_PATH];
+		WCHAR szPath[MAX_PATH];
 		GetModuleFilePath( _T("mui\\*"), szPath );
 		WIN32_FIND_DATA find;
 		HANDLE hFind = INVALID_HANDLE_VALUE;
@@ -545,9 +545,9 @@ public:
 		return FALSE;
 	}
 
-	BOOL GetDefaultResourceFolder( LPTSTR szFolder )
+	BOOL GetDefaultResourceFolder( LPWSTR szFolder )
 	{
-		TCHAR szLang[MAX_PATH];
+		WCHAR szLang[MAX_PATH];
 		int nLang = GetProfileInt( EEREG_LM_COMMON, NULL, szDefaultLang, 1033 );
 		StringCchPrintf( szLang, _countof( szLang ), _T("%d"), nLang );
 		BOOL bResult = GetResourceFolder( szFolder, false, szLang );
@@ -557,9 +557,9 @@ public:
 		return bResult;
 	}
 
-	BOOL GetResourceFolder( LPTSTR szFolder )
+	BOOL GetResourceFolder( LPWSTR szFolder )
 	{
-		TCHAR szDir[MAX_PATH];
+		WCHAR szDir[MAX_PATH];
 		szDir[0] = 0;
 		Editor_Info( m_hWnd, EI_GET_LANGUAGE, (LPARAM)szDir );
 		if( szDir[0] ){
@@ -571,7 +571,7 @@ public:
 		return FALSE;
 	}
 
-	BOOL GetResourceFile( LPTSTR szPath, LPCTSTR szFile )
+	BOOL GetResourceFile( LPWSTR szPath, LPCWSTR szFile )
 	{
 		if( GetResourceFolder( szPath ) ){
 			PathAppend( szPath, szFile );
@@ -595,20 +595,20 @@ public:
 			HINSTANCE hinstLoc = (HINSTANCE)Editor_Info( m_hWnd, EI_GET_LOC_DLL_INSTANCE, 0 );
 			_ASSERT( hinstLoc );
 			return hinstLoc;
-			//TCHAR szPath[MAX_PATH];
+			//WCHAR szPath[MAX_PATH];
 			//szPath[0] = 0;
 			//Editor_Info( m_hWnd, EI_GET_LANGUAGE, (LPARAM)szPath );
 			//PathAppend( szPath, L"emedloc.dll" );
 			//return GetInstancePath( szPath );
 		}
 		else if( T::_USE_LOC_DLL == LOC_USE_LOC_DLL ){
-			TCHAR szFileName[MAX_PATH];
-			TCHAR szPath[MAX_PATH];
+			WCHAR szFileName[MAX_PATH];
+			WCHAR szPath[MAX_PATH];
 			szPath[0] = 0;
 			if( GetModuleFile( szFileName ) ) {
 				StringCchCat( szFileName, _countof( szFileName ), _T("_loc.dll") );
 				if( !GetResourceFile( szPath, szFileName ) ){
-					TCHAR sz[260];
+					WCHAR sz[260];
 					StringCchCopy( sz, _countof( sz ), _T("No localized file found - ") );
 					StringCchCat( sz, _countof( sz ), szFileName );
 					::MessageBox( NULL, sz, _T("EmEditor"), MB_ICONSTOP | MB_OK );
@@ -654,47 +654,47 @@ HINSTANCE EEGetInstanceHandle()
 	return _ETLData.m_hInstance;
 }
 
-BOOL IsFileExist( LPCTSTR pszPathName )
+BOOL IsFileExist( LPCWSTR pszPathName )
 {
 	return( !(GetFileAttributes( pszPathName ) & FILE_ATTRIBUTE_DIRECTORY) );
 }
 
 // buffer must be MAX_PATH character long.
-BOOL GetModuleFile( LPTSTR szFileName )
+BOOL GetModuleFile( LPWSTR szFileName )
 {
-	TCHAR szPath[MAX_PATH];
+	WCHAR szPath[MAX_PATH];
 	if( !GetModuleFileName( EEGetInstanceHandle(), szPath, _countof( szPath ) ) ){
 		return FALSE;
 	}
-	TCHAR szBuf[MAX_PATH];
-	LPTSTR pszFile = szBuf;
+	WCHAR szBuf[MAX_PATH];
+	LPWSTR pszFile = szBuf;
 	if( !GetFullPathName( szPath, MAX_PATH, szBuf, &pszFile ) ){
 		return FALSE;
 	}
-	LPTSTR p = _tcschr( pszFile, _T('.') );
+	LPWSTR p = _tcschr( pszFile, _T('.') );
 	if( p != NULL )  *p = _T('\0');
 	StringCchCopy( szFileName, MAX_PATH, pszFile );
 	return TRUE;
 }
 
-void GetModuleFilePath( LPCTSTR szFile, LPTSTR szPath )
+void GetModuleFilePath( LPCWSTR szFile, LPWSTR szPath )
 {
 	szPath[0] = '\0';
-	TCHAR szModulePath[MAX_PATH];
-	LPTSTR p = szPath;
+	WCHAR szModulePath[MAX_PATH];
+	LPWSTR p = szPath;
 	if( ::GetModuleFileName( EEGetInstanceHandle(), szModulePath, MAX_PATH) ){
 		GetFullPathName( szModulePath, MAX_PATH, szPath, &p );
 	}
 	StringCchCopy( p, (size_t)(MAX_PATH - (p - szPath)), szFile );
 }
 
-HINSTANCE GetInstancePath( LPCTSTR szPath, bool bResourceOnly )
+HINSTANCE GetInstancePath( LPCWSTR szPath, bool bResourceOnly )
 {
 	_ASSERT( szPath[0] );
 	_ASSERT( !PathIsRelative( szPath ) );  //  szPath must be full path to avoid dll hijacking issues
 	HINSTANCE hinstRes = ::LoadLibraryEx( szPath, NULL, bResourceOnly ? (LOAD_LIBRARY_AS_DATAFILE | LOAD_LIBRARY_AS_IMAGE_RESOURCE) : 0 );
 	if( hinstRes == NULL ){
-		TCHAR sz[MAX_PATH + 64];
+		WCHAR sz[MAX_PATH + 64];
 		StringCchPrintf( sz, _countof( sz ), _T("Cannot load %s."), szPath );
 		MessageBox( NULL, sz, _T("EmEditor"), MB_OK | MB_ICONSTOP );
 		return NULL;
