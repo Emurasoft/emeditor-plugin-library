@@ -55,7 +55,7 @@
 #endif
 #endif
 
-LPCWSTR const szDefaultLang = _T("DefaultLang");
+LPCWSTR const szDefaultLang = L"DefaultLang";
 
 // forward declaration
 #define DEFINE_CREATE(c) 
@@ -487,7 +487,7 @@ public:
 	{
 		if( szLang[0] != '.' ){
 			WCHAR szPath[MAX_PATH];
-			GetModuleFilePath( _T("mui"), szPath );
+			GetModuleFilePath( L"mui", szPath );
 			PathAppend( szPath, szLang );
 			return PathIsDirectory( szPath );
 		}
@@ -497,11 +497,11 @@ public:
 	BOOL GetResourceFolder( LPWSTR szFolder, bool bSystemLang, LPCWSTR szLang )
 	{
 		WCHAR szPath[MAX_PATH];
-		GetModuleFilePath( _T("mui"), szPath );
+		GetModuleFilePath( L"mui", szPath );
 		if( bSystemLang ){
 			WCHAR szFile[MAX_PATH];
 			UINT nLang = GetUserDefaultUILanguage();
-			StringCchPrintf( szFile, _countof( szFile ), _T("%u"), nLang );
+			StringCchPrintf( szFile, _countof( szFile ), L"%u", nLang );
 			if( IsLangExist( szFile ) ){
 				PathCombine( szFolder, szPath, szFile );
 				return TRUE;
@@ -524,7 +524,7 @@ public:
 		WCHAR szLang[MAX_PATH];
 		szLang[0] = 0;
 		WCHAR szPath[MAX_PATH];
-		GetModuleFilePath( _T("mui\\*"), szPath );
+		GetModuleFilePath( L"mui\\*", szPath );
 		WIN32_FIND_DATA find;
 		HANDLE hFind = INVALID_HANDLE_VALUE;
 		hFind = FindFirstFile( szPath, &find );
@@ -549,7 +549,7 @@ public:
 	{
 		WCHAR szLang[MAX_PATH];
 		int nLang = GetProfileInt( EEREG_LM_COMMON, NULL, szDefaultLang, 1033 );
-		StringCchPrintf( szLang, _countof( szLang ), _T("%d"), nLang );
+		StringCchPrintf( szLang, _countof( szLang ), L"%d", nLang );
 		BOOL bResult = GetResourceFolder( szFolder, false, szLang );
 		if( !bResult ){
 			bResult = GetAnyResourceFolder( szFolder );
@@ -564,7 +564,7 @@ public:
 		Editor_Info( m_hWnd, EI_GET_LANGUAGE, (LPARAM)szDir );
 		if( szDir[0] ){
 			PathStripPath( szDir );
-			GetModuleFilePath( _T("mui"), szFolder );
+			GetModuleFilePath( L"mui", szFolder );
 			PathAppend( szFolder, szDir );
 			return TRUE;
 		}
@@ -606,12 +606,12 @@ public:
 			WCHAR szPath[MAX_PATH];
 			szPath[0] = 0;
 			if( GetModuleFile( szFileName ) ) {
-				StringCchCat( szFileName, _countof( szFileName ), _T("_loc.dll") );
+				StringCchCat( szFileName, _countof( szFileName ), L"_loc.dll" );
 				if( !GetResourceFile( szPath, szFileName ) ){
 					WCHAR sz[260];
-					StringCchCopy( sz, _countof( sz ), _T("No localized file found - ") );
+					StringCchCopy( sz, _countof( sz ), L"No localized file found - " );
 					StringCchCat( sz, _countof( sz ), szFileName );
-					::MessageBox( NULL, sz, _T("EmEditor"), MB_ICONSTOP | MB_OK );
+					::MessageBox( NULL, sz, L"EmEditor", MB_ICONSTOP | MB_OK );
 					return NULL;
 				}
 			}
@@ -671,8 +671,8 @@ BOOL GetModuleFile( LPWSTR szFileName )
 	if( !GetFullPathName( szPath, MAX_PATH, szBuf, &pszFile ) ){
 		return FALSE;
 	}
-	LPWSTR p = _tcschr( pszFile, _T('.') );
-	if( p != NULL )  *p = _T('\0');
+	LPWSTR p = wcschr( pszFile, L'.' );
+	if( p != NULL )  *p = L'\0';
 	StringCchCopy( szFileName, MAX_PATH, pszFile );
 	return TRUE;
 }
@@ -695,8 +695,8 @@ HINSTANCE GetInstancePath( LPCWSTR szPath, bool bResourceOnly )
 	HINSTANCE hinstRes = ::LoadLibraryEx( szPath, NULL, bResourceOnly ? (LOAD_LIBRARY_AS_DATAFILE | LOAD_LIBRARY_AS_IMAGE_RESOURCE) : 0 );
 	if( hinstRes == NULL ){
 		WCHAR sz[MAX_PATH + 64];
-		StringCchPrintf( sz, _countof( sz ), _T("Cannot load %s."), szPath );
-		MessageBox( NULL, sz, _T("EmEditor"), MB_OK | MB_ICONSTOP );
+		StringCchPrintf( sz, _countof( sz ), L"Cannot load %s.", szPath );
+		MessageBox( NULL, sz, L"EmEditor", MB_OK | MB_ICONSTOP );
 		return NULL;
 	}
 	return hinstRes;
