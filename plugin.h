@@ -243,6 +243,9 @@
 //                      Added MANAGE_DUPLICATES_COMBINE flag, revised Editor_ManageDuplicates inline function, MANAGE_DUPLICATES_INFO structure.
 //                      Revised SPLIT_COLUMN_INFO, Editor_SplitColumn.
 //                      Added the BATCH_GREP_INFO structure and the Editor_BatchFindInFiles and Editor_BatchReplaceInFiles inline functions.
+// v21.1                Added the CI_MOVE_CLIP action to the CLIP_INFO structure.
+//                      Added the FLAG_FILTER_BEGIN and FLAG_FILTER_END flags to the FILTER_INFO_EX structure.
+//                      Added the EI_FILE_POS_TO_LOGICAL, EI_LOGICAL_TO_FILE_POS, EI_CELL_TO_LOGICAL, and EI_LOGICAL_TO_CELL commands to the EE_INFO message.
 
 #pragma once
 
@@ -778,11 +781,12 @@ typedef struct _LOAD_FILE_INFO_EX_V2 {
 #define LFI_USE_TEMP_FILE			4
 #define LFI_DONT_USE_TEMP_FILE		8
 
-#define FLAG_CR_AND_LF			0
-#define FLAG_CR_ONLY			1
-#define FLAG_LF_ONLY			2
-#define FLAG_NEWLINE_MIXED		0xff
-#define FLAG_ABORT				0xfe
+constexpr BYTE FLAG_CR_AND_LF = 0;
+constexpr BYTE FLAG_CR_ONLY = 1;
+constexpr BYTE FLAG_LF_ONLY = 2;
+constexpr BYTE FLAG_NEWLINE_MIXED = 0xff;
+constexpr BYTE FLAG_ABORT = 0xfe;
+constexpr BYTE FLAG_FOUND_NULL = 0xfd;
 
 typedef struct _GET_LINE_INFO {
     UINT_PTR	cch;		// in
@@ -1206,13 +1210,13 @@ inline UINT_PTR Editor_GetSelTextW( HWND hwnd, UINT_PTR nBufferSize, LPWSTR szBu
 #endif
 
 #define EE_GET_LINES            (EE_FIRST+4)
-  // wParam = MAKEWPARAM( nLogical, iDoc+1 )
+  // wParam = MAKEWPARAM( nLogical, static_cast<WPARAM>(iDoc)+1 )
   // returns (UINT_PTR)nTotalLines
 
 inline UINT_PTR Editor_DocGetLines( HWND hwnd, int iDoc, int nLogical )
 {
 	_ASSERT( hwnd && IsWindow( hwnd ) );
-    return (UINT_PTR)SNDMSG( hwnd, EE_GET_LINES, (WPARAM)MAKEWPARAM( nLogical, iDoc+1 ), (LPARAM)0 );
+    return (UINT_PTR)SNDMSG( hwnd, EE_GET_LINES, (WPARAM)MAKEWPARAM( nLogical, static_cast<WPARAM>(iDoc)+1 ), (LPARAM)0 );
 }
 
 #ifdef EE_STRICT
@@ -1433,11 +1437,11 @@ inline BOOL Editor_SaveFileA( HWND hwnd, BOOL bReplace, LPSTR szFileName )
 inline BOOL Editor_DocSaveFileA( HWND hwnd, int iDoc, BOOL bReplace, LPSTR szFileName )
 {
 	_ASSERT( hwnd && IsWindow( hwnd ) );
-    return (BOOL)SNDMSG( (hwnd), EE_SAVE_FILEA, MAKEWPARAM((bReplace), (iDoc)+1), (LPARAM)(LPSTR)(szFileName) );
+    return (BOOL)SNDMSG( (hwnd), EE_SAVE_FILEA, MAKEWPARAM((bReplace), static_cast<WPARAM>(iDoc)+1), (LPARAM)(LPSTR)(szFileName) );
 }
 #else
 #define Editor_DocSaveFileA( hwnd, iDoc, bReplace, szFileName ) \
-    (BOOL)SNDMSG( (hwnd), EE_SAVE_FILEA, MAKEWPARAM((bReplace), (iDoc)+1), (LPARAM)(LPSTR)(szFileName) )
+    (BOOL)SNDMSG( (hwnd), EE_SAVE_FILEA, MAKEWPARAM((bReplace), static_cast<WPARAM>(iDoc)+1), (LPARAM)(LPSTR)(szFileName) )
 #endif
 
 #define EE_SAVE_FILEW           (EE_FIRST+49)
@@ -1459,11 +1463,11 @@ inline BOOL Editor_SaveFileW( HWND hwnd, BOOL bReplace, LPWSTR szFileName )
 inline BOOL Editor_DocSaveFileW( HWND hwnd, int iDoc, BOOL bReplace, LPWSTR szFileName )
 {
 	_ASSERT( hwnd && IsWindow( hwnd ) );
-    return (BOOL)SNDMSG( (hwnd), EE_SAVE_FILEW, MAKEWPARAM((bReplace), (iDoc)+1), (LPARAM)(LPWSTR)(szFileName) );
+    return (BOOL)SNDMSG( (hwnd), EE_SAVE_FILEW, MAKEWPARAM((bReplace), static_cast<WPARAM>(iDoc)+1), (LPARAM)(LPWSTR)(szFileName) );
 }
 #else
 #define Editor_DocSaveFileW( hwnd, iDoc, bReplace, szFileName ) \
-    (BOOL)SNDMSG( (hwnd), EE_SAVE_FILEW, MAKEWPARAM((bReplace), (iDoc)+1), (LPARAM)(LPWSTR)(szFileName) )
+    (BOOL)SNDMSG( (hwnd), EE_SAVE_FILEW, MAKEWPARAM((bReplace), static_cast<WPARAM>(iDoc)+1), (LPARAM)(LPWSTR)(szFileName) )
 #endif
 
 #define EE_SERIAL_TO_LOGICAL    (EE_FIRST+17)
@@ -1592,11 +1596,11 @@ inline BOOL Editor_GetModified( HWND hwnd )
 inline BOOL Editor_DocGetModified( HWND hwnd, int iDoc )
 {
 	_ASSERT( hwnd && IsWindow( hwnd ) );
-    return (BOOL)SNDMSG( (hwnd), EE_GET_MODIFIED, MAKEWPARAM(0, (iDoc)+1), (LPARAM)0 );
+    return (BOOL)SNDMSG( (hwnd), EE_GET_MODIFIED, MAKEWPARAM(0, static_cast<WPARAM>(iDoc)+1), (LPARAM)0 );
 }
 #else
 #define Editor_DocGetModified( hwnd, iDoc ) \
-    (BOOL)SNDMSG( (hwnd), EE_GET_MODIFIED, MAKEWPARAM(0, (iDoc)+1), (LPARAM)0 )
+    (BOOL)SNDMSG( (hwnd), EE_GET_MODIFIED, MAKEWPARAM(0, static_cast<WPARAM>(iDoc)+1), (LPARAM)0 )
 #endif
 
 #define EE_SET_MODIFIED         (EE_FIRST+24)
@@ -1675,11 +1679,11 @@ inline void Editor_GetConfigA( HWND hwnd, LPSTR szConfigName )
 inline void Editor_DocGetConfigA( HWND hwnd, int iDoc, LPSTR szConfigName )
 {
 	_ASSERT( hwnd && IsWindow( hwnd ) );
-    SNDMSG( (hwnd), EE_GET_CONFIGA, (WPARAM)MAKEWPARAM(0, (iDoc)+1), (LPARAM)(LPSTR)(szConfigName) );
+    SNDMSG( (hwnd), EE_GET_CONFIGA, (WPARAM)MAKEWPARAM(0, static_cast<WPARAM>(iDoc)+1), (LPARAM)(LPSTR)(szConfigName) );
 }
 #else
 #define Editor_DocGetConfigA( hwnd, iDoc, szConfigName ) \
-    (void)SNDMSG( (hwnd), EE_GET_CONFIGA, (WPARAM)MAKEWPARAM(0, (iDoc)+1), (LPARAM)(LPSTR)(szConfigName) )
+    (void)SNDMSG( (hwnd), EE_GET_CONFIGA, (WPARAM)MAKEWPARAM(0, static_cast<WPARAM>(iDoc)+1), (LPARAM)(LPSTR)(szConfigName) )
 #endif
 
 #define EE_GET_CONFIGW          (EE_FIRST+50)
@@ -1700,11 +1704,11 @@ inline void Editor_GetConfigW( HWND hwnd, LPWSTR szConfigName )
 inline void Editor_DocGetConfigW( HWND hwnd, int iDoc, LPWSTR szConfigName )
 {
 	_ASSERT( hwnd && IsWindow( hwnd ) );
-    SNDMSG( (hwnd), EE_GET_CONFIGW, (WPARAM)MAKEWPARAM(0, (iDoc)+1), (LPARAM)(LPWSTR)(szConfigName) );
+    SNDMSG( (hwnd), EE_GET_CONFIGW, (WPARAM)MAKEWPARAM(0, static_cast<WPARAM>(iDoc)+1), (LPARAM)(LPWSTR)(szConfigName) );
 }
 #else
 #define Editor_DocGetConfigW( hwnd, iDoc, szConfigName ) \
-    (void)SNDMSG( (hwnd), EE_GET_CONFIGW, (WPARAM)MAKEWPARAM(0, (iDoc)+1), (LPARAM)(LPWSTR)(szConfigName) )
+    (void)SNDMSG( (hwnd), EE_GET_CONFIGW, (WPARAM)MAKEWPARAM(0, static_cast<WPARAM>(iDoc)+1), (LPARAM)(LPWSTR)(szConfigName) )
 #endif
 
 #define EE_SET_CONFIGA          (EE_FIRST+30)
@@ -1725,11 +1729,11 @@ inline BOOL Editor_SetConfigA( HWND hwnd, LPSTR szConfigName )
 inline BOOL Editor_DocSetConfigA( HWND hwnd, int iDoc, LPSTR szConfigName )
 {
 	_ASSERT( hwnd && IsWindow( hwnd ) );
-    return (BOOL)SNDMSG( (hwnd), EE_SET_CONFIGA, (WPARAM)MAKEWPARAM(0, (iDoc)+1), (LPARAM)(LPSTR)(szConfigName) );
+    return (BOOL)SNDMSG( (hwnd), EE_SET_CONFIGA, (WPARAM)MAKEWPARAM(0, static_cast<WPARAM>(iDoc)+1), (LPARAM)(LPSTR)(szConfigName) );
 }
 #else
 #define Editor_DocSetConfigA( hwnd, iDoc, szConfigName ) \
-    (BOOL)SNDMSG( (hwnd), EE_SET_CONFIGA, (WPARAM)MAKEWPARAM(0, (iDoc)+1), (LPARAM)(LPSTR)(szConfigName) )
+    (BOOL)SNDMSG( (hwnd), EE_SET_CONFIGA, (WPARAM)MAKEWPARAM(0, static_cast<WPARAM>(iDoc)+1), (LPARAM)(LPSTR)(szConfigName) )
 #endif
 
 #define EE_SET_CONFIGW          (EE_FIRST+51)
@@ -1750,11 +1754,11 @@ inline BOOL Editor_SetConfigW( HWND hwnd, LPWSTR szConfigName )
 inline BOOL Editor_DocSetConfigW( HWND hwnd, int iDoc, LPWSTR szConfigName )
 {
 	_ASSERT( hwnd && IsWindow( hwnd ) );
-    return (BOOL)SNDMSG( (hwnd), EE_SET_CONFIGW, (WPARAM)MAKEWPARAM(0, (iDoc)+1), (LPARAM)(LPWSTR)(szConfigName) );
+    return (BOOL)SNDMSG( (hwnd), EE_SET_CONFIGW, (WPARAM)MAKEWPARAM(0, static_cast<WPARAM>(iDoc)+1), (LPARAM)(LPWSTR)(szConfigName) );
 }
 #else
 #define Editor_DocSetConfigW( hwnd, iDoc, szConfigName ) \
-    (BOOL)SNDMSG( (hwnd), EE_SET_CONFIGW, (WPARAM)MAKEWPARAM(0, (iDoc)+1), (LPARAM)(LPWSTR)(szConfigName) )
+    (BOOL)SNDMSG( (hwnd), EE_SET_CONFIGW, (WPARAM)MAKEWPARAM(0, static_cast<WPARAM>(iDoc)+1), (LPARAM)(LPWSTR)(szConfigName) )
 #endif
 
 #define EE_EMPTY_UNDO_BUFFER    (EE_FIRST+31)
@@ -2144,11 +2148,11 @@ inline LRESULT Editor_Info( HWND hwnd, WPARAM nCmd, LPARAM lParam )
 inline LRESULT Editor_DocInfo( HWND hwnd, int iDoc, WPARAM nCmd, LPARAM lParam )
 {
 	_ASSERT( hwnd && IsWindow( hwnd ) );
-    return (LRESULT)SNDMSG( (hwnd), EE_INFO, (WPARAM)MAKEWPARAM((nCmd),(iDoc+1)), (LPARAM)(lParam) );
+    return (LRESULT)SNDMSG( (hwnd), EE_INFO, (WPARAM)MAKEWPARAM((nCmd),(static_cast<WPARAM>(iDoc)+1)), (LPARAM)(lParam) );
 }
 #else
 #define Editor_DocInfo( hwnd, iDoc, nCmd, lParam ) \
-    (LRESULT)SNDMSG( (hwnd), EE_INFO, (WPARAM)MAKEWPARAM((nCmd),(iDoc+1)), (LPARAM)(lParam) )
+    (LRESULT)SNDMSG( (hwnd), EE_INFO, (WPARAM)MAKEWPARAM((nCmd),(static_cast<WPARAM>(iDoc)+1)), (LPARAM)(lParam) )
 #endif
 
 #define EE_FREE                 (EE_FIRST+59)
@@ -2755,6 +2759,10 @@ typedef struct _TEMP_INFO {
 
 #define EE_EDIT_TEMP					(EE_FIRST+96)
 
+#ifndef INT_MIN
+#define INT_MIN     (-2147483647 - 1)
+#endif
+
 inline UINT Editor_EditTemp( HWND hwnd, LPCWSTR pszTempText, LPCWSTR pszTitle, LPCWSTR pszIconPath, LPCWSTR pszConfig, UINT nEncoding, POINT_PTR* pptInitialCaret = NULL, UINT nFlags = 0 )
 {
 	_ASSERT( hwnd && IsWindow( hwnd ) );
@@ -2768,7 +2776,7 @@ inline UINT Editor_EditTemp( HWND hwnd, LPCWSTR pszTempText, LPCWSTR pszTitle, L
 		ti.ptInitialCaret = *pptInitialCaret;
 	}
 	else {
-		ti.ptInitialCaret.x = ti.ptInitialCaret.y = -1;
+		ti.ptInitialCaret.x = ti.ptInitialCaret.y = INT_MIN;
 	}
 	ti.nEncoding = nEncoding;
 	ti.nFlags = nFlags;
@@ -2785,7 +2793,7 @@ inline UINT Editor_ActivateTemp( HWND hwnd, UINT nEditID, POINT_PTR* pptInitialC
 		ti.ptInitialCaret = *pptInitialCaret;
 	}
 	else {
-		ti.ptInitialCaret.x = ti.ptInitialCaret.y = -1;
+		ti.ptInitialCaret.x = ti.ptInitialCaret.y = INT_MIN;
 	}
 	return (UINT)SNDMSG( hwnd, EE_EDIT_TEMP, (WPARAM)0, (LPARAM)&ti );
 }
@@ -2825,6 +2833,7 @@ typedef struct _CLIP_INFO {
 #define CI_GET_CLIP_POS	3
 #define CI_SET_CLIP_POS	4
 #define CI_ROTATE_CLIP	5
+#define CI_MOVE_CLIP	6
 
 #define CI_FLAG_NO_UPDATE_REAL_CLIP	0x00001000
 
@@ -3857,6 +3866,25 @@ inline HRESULT Editor_SplitColumn( HWND hwnd, UINT nType, UINT nFlags, int* anCo
 // v19.1
 #define EI_GET_CHAR_TYPE                    372
 
+// v20.1
+typedef struct _FILE_POS_INFO
+{
+	INT64 nFilePos;
+	POINT_PTR ptLogical;
+} FILE_POS_INFO;
+
+#define EI_FILE_POS_TO_LOGICAL				373
+#define EI_LOGICAL_TO_FILE_POS				374
+
+typedef struct _CELL_LOGICAL_INFO
+{
+	POINT_PTR ptLogical;
+	int iCsvColumn;
+} CELL_LOGICAL_INFO;
+
+#define EI_CELL_TO_LOGICAL					375
+#define EI_LOGICAL_TO_CELL					376
+
 
 #define SYNC_FLAG_FORCE				1				
 #define SYNC_FLAG_SEND				2
@@ -4005,6 +4033,8 @@ inline HRESULT Editor_SplitColumn( HWND hwnd, UINT nType, UINT nFlags, int* anCo
 #define FLAG_FIND_UNBOOKMARKED_ONLY		0x0000'0800'0000'0000ull
 #define FLAG_FIND_NUMBER_RANGE			0x0000'1000'0000'0000ull
 #define FLAG_FIND_OUTPUT_ENCODING		0x0000'2000'0000'0000ull
+#define FLAG_FILTER_BEGIN				0x0000'4000'0000'0000ull
+#define FLAG_FILTER_END					0x0000'8000'0000'0000ull
 #define FLAG_FIND_COUNT_FREQUENCY       0x0008'0000'0000'0000ull
 #define FLAG_FIND_NO_OVERLAP			0x0040'0000'0000'0000ull
 #define FLAG_FIND_LOOKAROUND			0x0080'0000'0000'0000ull
@@ -4033,9 +4063,9 @@ inline HRESULT Editor_SplitColumn( HWND hwnd, UINT nType, UINT nFlags, int* anCo
 #define FLAG_BATCH_FIND_MASK			(FLAG_FIND_CASE | FLAG_FIND_ONLY_WORD | FLAG_FIND_REG_EXP | FLAG_FIND_NUMBER_RANGE | FLAG_FIND_ESCAPE)
 #define FLAG_BATCH_GREP_MASK			FLAG_BATCH_FIND_MASK
 #define FLAG_FILTER_MASK				(FLAG_FIND_CASE | FLAG_FIND_ESCAPE | FLAG_FIND_ONLY_WORD | FLAG_FIND_REG_EXP | FLAG_FIND_INCREMENTAL | FLAG_FIND_NEGATIVE | FLAG_FIND_NUMBER_RANGE)
-#define FLAG_ADVANCED_FILTER_MASK		(FLAG_FILTER_MASK | FLAG_FIND_LOGICAL_OR | FLAG_FIND_WHOLE_STRING | FLAG_FILTER_ENABLED | FLAG_FIND_MATCH_NL | FLAG_FIND_CR_ONLY | FLAG_FIND_LF_ONLY | FLAG_FIND_CR_LF | FLAG_FIND_NL_OTHERS | FLAG_FIND_BOOKMARKED_ONLY | FLAG_FIND_UNBOOKMARKED_ONLY)
+#define FLAG_ADVANCED_FILTER_MASK		(FLAG_FILTER_MASK | FLAG_FIND_LOGICAL_OR | FLAG_FIND_WHOLE_STRING | FLAG_FILTER_ENABLED | FLAG_FIND_MATCH_NL | FLAG_FIND_CR_ONLY | FLAG_FIND_LF_ONLY | FLAG_FIND_CR_LF | FLAG_FIND_NL_OTHERS | FLAG_FIND_BOOKMARKED_ONLY | FLAG_FIND_UNBOOKMARKED_ONLY | FLAG_FILTER_BEGIN | FLAG_FILTER_END)
 #define FLAG_MACRO_FILTER_MASK			((FLAG_ADVANCED_FILTER_MASK | FLAG_FIND_CONTINUE | FLAG_FIND_KEEP_PREVIOUS | FLAG_FIND_REMOVE_LAST) & ~FLAG_FILTER_ENABLED)
-#define FLAG_FIND_SAVE_MASK				((FLAG_GREP_MASK | FLAG_FIND_MASK) & ~(FLAG_FIND_NO_PROMPT | FLAG_FIND_BOOKMARK | FLAG_FIND_SAVE_HISTORY | FLAG_FIND_SELECT_ALL | FLAG_FIND_ADD_NEXT | FLAG_FIND_EXTRACT))
+#define FLAG_FIND_SAVE_MASK				((FLAG_GREP_MASK | FLAG_FIND_MASK) & ~(FLAG_FIND_NO_PROMPT | FLAG_FIND_BOOKMARK | FLAG_FIND_SAVE_HISTORY | FLAG_FIND_SELECT_ALL | FLAG_FIND_ADD_NEXT | FLAG_FIND_EXTRACT | FLAG_FIND_FILTER))
 
 #define FLAG_FIND_NOT_ONCE              (FLAG_FIND_COUNT | FLAG_FIND_SELECT_ALL | FLAG_FIND_REPLACE_LATER)  // internal use only
 #define FLAG_FIND_SEARCH_ALL			(FLAG_FIND_COUNT | FLAG_FIND_BOOKMARK | FLAG_FIND_SELECT_ALL | FLAG_FIND_EXTRACT | FLAG_FIND_FILTER | FLAG_FIND_UPDATE_MARKER | FLAG_FIND_REPLACE_LATER)  // internal use only
