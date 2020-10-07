@@ -246,6 +246,8 @@
 // v21.1                Added the CI_MOVE_CLIP action to the CLIP_INFO structure.
 //                      Added the FLAG_FILTER_BEGIN and FLAG_FILTER_END flags to the FILTER_INFO_EX structure.
 //                      Added the EI_FILE_POS_TO_LOGICAL, EI_LOGICAL_TO_FILE_POS, EI_CELL_TO_LOGICAL, and EI_LOGICAL_TO_CELL commands to the EE_INFO message.
+// v21.2                Added cbSize and ptCaret fields to SEL_INFO structure.
+//                      Added EE_SET_MULTI_SEL message, Editor_SetMultiSel inline function.
 
 #pragma once
 
@@ -2964,13 +2966,14 @@ inline UINT_PTR Editor_GetWord( HWND hwnd, UINT_PTR nBufferSize, LPWSTR szBuffer
 }
 
 typedef struct _SEL_INFO {
+	size_t      cbSize;
 	POINT_PTR	ptStart;
 	POINT_PTR	ptEnd;
+	POINT_PTR	ptCaret;
 } SEL_INFO;
 
 #define EE_GET_MULTI_SEL					(EE_FIRST+101)
-  // (UINT_PTR)wParam = nBufferSize, (LPWSTR)lParam = szBuffer
-  // returns (UINT_PTR)nRequiredBufferSize
+  // (UINT_PTR)wParam = iSel, (LPWSTR)lParam = pSelInfo
 
 inline UINT_PTR Editor_GetMultiSel( HWND hwnd, UINT_PTR iSel, SEL_INFO* pSelInfo )
 {
@@ -3634,13 +3637,14 @@ inline HRESULT Editor_Numbering( HWND hwnd, LPCWSTR pszFirst, LPCWSTR pszInc, IN
 	return (HRESULT)SNDMSG( (hwnd), EE_NUMBERING, (WPARAM)&ni, 0 );
 }
 
-#define COLUMN_MOVE			0
-#define COLUMN_COPY			1
-#define COLUMN_CONCAT		2
-#define COLUMN_COALESCE		3
+#define COLUMN_MOVE				0
+#define COLUMN_COPY				1
+#define COLUMN_CONCAT			2
+#define COLUMN_COALESCE			3
 #define COLUMN_SPLIT_TO_COLUMNS	4
 #define COLUMN_SPLIT_TO_LINES	5
-#define COLUMN_ACTION_MASK	7
+#define COLUMN_SPLIT_TO_NONE	6
+#define COLUMN_ACTION_MASK		7
 
 typedef struct _EDIT_COLUMN_INFO {
 	UINT cbSize;
@@ -3701,6 +3705,16 @@ inline HRESULT Editor_SplitColumn( HWND hwnd, UINT nType, UINT nFlags, int* anCo
 	SPLIT_COLUMN_INFO into = { sizeof( into ), nType, nFlags, anColumns, nNumOfColumns, nLimit, pszSeparator, pszLocale };
 	return (HRESULT)SNDMSG( ( hwnd ), EE_SPLIT_COLUMN, (WPARAM)&into, 0 );
 }
+
+#define EE_SET_MULTI_SEL					(EE_FIRST+124)
+// (UINT_PTR)wParam = iSel, (LPWSTR)lParam = pSelInfo
+
+inline UINT_PTR Editor_SetMultiSel( HWND hwnd, UINT_PTR iSel, const SEL_INFO* pSelInfo )
+{
+	_ASSERT( hwnd && IsWindow( hwnd ) );
+	return (UINT_PTR)SNDMSG( hwnd, EE_SET_MULTI_SEL, (WPARAM)iSel, (LPARAM)pSelInfo );
+}
+
 
 //
 #define EE_LAST                 (EE_FIRST+255)
