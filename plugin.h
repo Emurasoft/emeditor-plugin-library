@@ -243,11 +243,14 @@
 //                      Added MANAGE_DUPLICATES_COMBINE flag, revised Editor_ManageDuplicates inline function, MANAGE_DUPLICATES_INFO structure.
 //                      Revised SPLIT_COLUMN_INFO, Editor_SplitColumn.
 //                      Added the BATCH_GREP_INFO structure and the Editor_BatchFindInFiles and Editor_BatchReplaceInFiles inline functions.
-// v21.1                Added the CI_MOVE_CLIP action to the CLIP_INFO structure.
+// v20.1                Added the CI_MOVE_CLIP action to the CLIP_INFO structure.
 //                      Added the FLAG_FILTER_BEGIN and FLAG_FILTER_END flags to the FILTER_INFO_EX structure.
 //                      Added the EI_FILE_POS_TO_LOGICAL, EI_LOGICAL_TO_FILE_POS, EI_CELL_TO_LOGICAL, and EI_LOGICAL_TO_CELL commands to the EE_INFO message.
-// v21.2                Added cbSize and ptCaret fields to SEL_INFO structure.
+// v20.2                Added cbSize and ptCaret fields to SEL_INFO structure.
 //                      Added EE_SET_MULTI_SEL message, Editor_SetMultiSel inline function.
+// v20.3                Removed m_bHighlightCharRef.
+// v20.4                Added EEID_TOGGLE_NOTIFICATIONS, EEID_REMOVE_EMPTY_COLUMNS, EEID_CLEAR_UNDO_REDO_HISTORY, EEID_FIND_EMPTY_OR_SHORTEST, EEID_CUSTOMIZE_NOTIFICATIONS, EEID_CUSTOMIZE_UPDATE, 
+//                      Added FLAG_FIND_MATCHED_EX
 
 #pragma once
 
@@ -292,6 +295,9 @@
 #define E_TOO_MANY_FILES					_HRESULT_TYPEDEF_(0xa0000030L)
 #define E_AOTHER_THREAD_REACHED_MAX			_HRESULT_TYPEDEF_(0xa0000031L)  // used internally
 #define E_DIFF_CRLF							_HRESULT_TYPEDEF_(0xa0000032L)  // used internally
+#define E_RETRY                             _HRESULT_TYPEDEF_(0xa0000033L)  // used internally
+#define E_WRAP_CANCEL						_HRESULT_TYPEDEF_(0xa0000034L)  // used internally
+#define E_TOO_MANY_LINES					_HRESULT_TYPEDEF_(0xa0000035L)  // used internally
 
 #define S_MATCHED							_HRESULT_TYPEDEF_(0x20000001L)
 #define S_MATCHED_IGNORED					_HRESULT_TYPEDEF_(0x20000002L)
@@ -307,7 +313,8 @@
 #define CLR_NONE                0xFFFFFFFFL
 #endif
 
-#define REV_VERSION_19_6        27
+#define REG_VERSION_20_3		28
+#define REG_VERSION_19_6        27
 #define REG_VERSION_19_0        26
 #define REG_VERSION_18_7        25
 #define REG_VERSION_18_6        24
@@ -324,7 +331,7 @@
 #define REG_VERSION_13          13
 #define REG_VERSION_10          10
 #define REG_VERSION_3           3  // v3
-#define REG_VERSION             REV_VERSION_19_6
+#define REG_VERSION             REG_VERSION_20_3
 
 #define UPDATE_TREE_NONE			0
 #define UPDATE_OUTLINE				1
@@ -4023,6 +4030,7 @@ typedef struct _CELL_LOGICAL_INFO
 #define FLAG_FIND_BOOKMARK				0x0000'0000'0010'0000ull  // EE_FIND
 #define FLAG_FIND_SELECT_ALL			0x0000'0000'0020'0000ull  // EE_FIND
 #define FLAG_FIND_WHOLE_STRING			0x0000'0000'0040'0000ull
+#define FLAG_FIND_MATCHED_EX			0x0000'0000'0080'0000ull  // EE_FIND_IN_FILES only (v20.4)
 #define FLAG_FIND_OUTPUT				0x0000'0000'0100'0000ull  // EE_FIND_IN_FILES only
 #define FLAG_FIND_OUTPUT_DISPLAY		0x0000'0000'0200'0000ull  // EE_FIND_IN_FILES only (v14)
 #define FLAG_GREP_NO_CLOSE				0x0000'0000'0400'0000ull  // EE_FIND_IN_FILES and EE_REPLACE_IN_FILES (v14)
@@ -4030,7 +4038,6 @@ typedef struct _CELL_LOGICAL_INFO
 #define FLAG_FIND_FILTER				0x0000'0000'1000'0000ull  // internal use only
 #define FLAG_FIND_EMBEDDED_NL			0x0000'0000'2000'0000ull  // EE_FIND, EE_REPLACE and EE_FILTER for CSV embedded new lines
 #define FLAG_FIND_NEGATIVE				0x0000'0000'4000'0000ull  // EE_FILTER
-#define FLAG_FIND_UPDATE_MARKER			0x0000'0000'8000'0000ull  // internal use only
 #define FLAG_FIND_EXTRACT_FILE_LINE		0x0000'0000'8000'0000ull  // internal use only for macros
 #define FLAG_FILTER_DISABLED			0x0000'0000'8000'0000ull  // internal use only
 #define FLAG_FIND_SEPARATE_CRLF			0x0000'0001'0000'0000ull
@@ -4049,6 +4056,7 @@ typedef struct _CELL_LOGICAL_INFO
 #define FLAG_FIND_OUTPUT_ENCODING		0x0000'2000'0000'0000ull
 #define FLAG_FILTER_BEGIN				0x0000'4000'0000'0000ull
 #define FLAG_FILTER_END					0x0000'8000'0000'0000ull
+#define FLAG_FIND_UPDATE_MARKER			0x0004'0000'0000'0000ull  // internal use only
 #define FLAG_FIND_COUNT_FREQUENCY       0x0008'0000'0000'0000ull
 #define FLAG_FIND_NO_OVERLAP			0x0040'0000'0000'0000ull
 #define FLAG_FIND_LOOKAROUND			0x0080'0000'0000'0000ull
@@ -4063,14 +4071,16 @@ typedef struct _CELL_LOGICAL_INFO
 #define FLAG_FIND_SEL_ONLY				FLAG_REPLACE_SEL_ONLY  // EE_FIND only
 
 #define FLAG_FIND_LINE_ONLY				(FLAG_FIND_OUTPUT_DISPLAY)  // EE_FIND_IN_FILES only
-#define FLAG_FIND_MATCHED_ONLY			(FLAG_FIND_FILENAMES_ONLY+FLAG_FIND_OUTPUT_DISPLAY)
-														  
+#define FLAG_FIND_MATCHED_ONLY			(FLAG_FIND_FILENAMES_ONLY|FLAG_FIND_OUTPUT_DISPLAY)
+#define FLAG_FIND_FILE_LINE_AND_MATCHED	(FLAG_FIND_MATCHED_EX)
+#define FLAG_FIND_FILE_AND_MATCHED		(FLAG_FIND_FILENAMES_ONLY|FLAG_FIND_MATCHED_EX)
+
 #define FLAG_FIND_OPEN_DIRECT			(FLAG_FIND_FILTER)
 #define FLAG_FIND_OPEN_FILTER			(FLAG_FIND_OUTPUT+FLAG_FIND_FILTER)
 
 #define FLAG_FIND_BOL_EOL				(FLAG_FIND_BOL | FLAG_FIND_EOL)
 
-#define FLAG_GREP_MASK				   (0x0000'0007'0604'7d46ull | FLAG_FIND_OUTPUT | FLAG_FIND_FILTER | FLAG_FIND_NUMBER_RANGE | FLAG_FIND_COUNT_FREQUENCY | FLAG_FIND_OUTPUT_ENCODING)
+#define FLAG_GREP_MASK				   (0x0000'0007'0604'7d46ull | FLAG_FIND_OUTPUT | FLAG_FIND_FILTER | FLAG_FIND_NUMBER_RANGE | FLAG_FIND_COUNT_FREQUENCY | FLAG_FIND_OUTPUT_ENCODING | FLAG_FIND_MATCHED_EX)
 #define FLAG_FIND_EXTRACT_MASK			(FLAG_FIND_FILENAMES_ONLY | FLAG_FIND_OUTPUT_DISPLAY | FLAG_FIND_OUTPUT | FLAG_FIND_COUNT_FREQUENCY)
 #define FLAG_FIND_MASK_WITHOUT_EXTRACT (0x0000'0007'283f'83ffull | FLAG_FIND_BOL_EOL | FLAG_FIND_LOOKAROUND | FLAG_FIND_INSERT_COLUMN | FLAG_FIND_NUMBER_RANGE)
 #define FLAG_FIND_MASK					(FLAG_FIND_MASK_WITHOUT_EXTRACT | FLAG_FIND_EXTRACT_MASK)
@@ -4091,14 +4101,8 @@ typedef struct _CELL_LOGICAL_INFO
 #define DEFAULT_ADD_OCCURRENCE			(FLAG_FIND_CASE | FLAG_FIND_ONLY_WORD)
 #define DEFAULT_FILTER_FLAG				(FLAG_FIND_INCREMENTAL)
 #define DEFAULT_EXTRACT_FREQ_FLAG       (FLAG_FIND_CASE)
-#define DEFAULT_GREP_EXTRACT_FLAG       (FLAG_FIND_OUTPUT_DISPLAY | FLAG_FIND_FILENAMES_ONLY)
-#define FLAG_GREP_EXTRACT_MASK          (FLAG_FIND_OUTPUT_DISPLAY | FLAG_FIND_FILENAMES_ONLY | FLAG_FIND_COUNT_FREQUENCY | FLAG_FIND_OUTPUT)
-
-// FLAG_FIND_OUTPUT_DISPLAY = 0, FLAG_FIND_FILENAMES_ONLY = 0 : Displays file names and lines  OUTPUT_DISPLAY_FILE_AND_LINE
-// FLAG_FIND_OUTPUT_DISPLAY = 0, FLAG_FIND_FILENAMES_ONLY = 1 : Displays file names only       OUTPUT_DISPLAY_FILE_ONLY
-// FLAG_FIND_OUTPUT_DISPLAY = 1, FLAG_FIND_FILENAMES_ONLY = 0 : Displays matched lines only    OUTPUT_DISPLAY_LINE_ONLY
-// FLAG_FIND_OUTPUT_DISPLAY = 1, FLAG_FIND_FILENAMES_ONLY = 1 : Displays matched strings only  OUTPUT_DISPLAY_MATCHED_ONLY
-
+#define DEFAULT_GREP_EXTRACT_FLAG       (FLAG_FIND_OUTPUT_DISPLAY | FLAG_FIND_FILENAMES_ONLY | FLAG_FIND_MATCHED_EX)
+#define FLAG_GREP_EXTRACT_MASK          (FLAG_FIND_OUTPUT_DISPLAY | FLAG_FIND_FILENAMES_ONLY | FLAG_FIND_MATCHED_EX | FLAG_FIND_COUNT_FREQUENCY | FLAG_FIND_OUTPUT)
 
 // GET_LINE_INFO
 #define FLAG_LOGICAL			1
@@ -4344,7 +4348,7 @@ public:
 	bool		m_bSpellRest;		    // PRO only 
 	bool		m_bSpell;			    // PRO only 
 	bool		m_bSpellCamelCase;	    // PRO only 
-	bool		m_bHighlightCharRef;	// PRO only v11 Highlight HTML/XML Character Reference and Universal Character Names
+	bool		m_bDummy7;                 // was m_bHighlightCharRef  v11 Highlight HTML/XML Character Reference and Universal Character Names -> replaced with m_pConfig->m_cust.m_nAS & AS_BIT_HTML_CHAR_REF or AS_BIT_UCN
 	bool		m_bEnableHeader;
 	bool		m_bEnableFooter;
 	bool		m_bHighlightMatchingTag;  // PRO only  v12 Highlight Matching Tag
@@ -5265,6 +5269,12 @@ public:
 // v20.0
 #define EEID_COMBINE_LINES                4060
 
+// v20.4
+#define EEID_TOGGLE_NOTIFICATIONS         4061
+#define EEID_REMOVE_EMPTY_COLUMNS         4062
+#define EEID_CLEAR_UNDO_REDO_HISTORY      4063
+#define EEID_FIND_EMPTY_OR_SHORTEST       4064
+
 // other commands
 #define EEID_FILE_MRU_FILE1               4609  // to EEID_FILE_MRU_FILE1 + 63
 #define EEID_MRU_FONT1                    4736  // to EEID_MRU_FONT1 + 63
@@ -5368,6 +5378,8 @@ public:
 #define EEID_CUSTOMIZE_SYNC               9060
 #define EEID_CUSTOMIZE_OPTIMIZATION       9061
 #define EEID_CUSTOMIZE_VALIDATION         9062
+#define EEID_CUSTOMIZE_NOTIFICATIONS      9063
+#define EEID_CUSTOMIZE_UPDATE             9064
 
 // for Projects plug-in
 #ifdef USE_PROJECTS_PLUGIN
