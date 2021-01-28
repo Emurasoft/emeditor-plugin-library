@@ -251,6 +251,7 @@
 // v20.3                Removed m_bHighlightCharRef.
 // v20.4                Added EEID_TOGGLE_NOTIFICATIONS, EEID_REMOVE_EMPTY_COLUMNS, EEID_CLEAR_UNDO_REDO_HISTORY, EEID_FIND_EMPTY_OR_SHORTEST, EEID_CUSTOMIZE_NOTIFICATIONS, EEID_CUSTOMIZE_UPDATE, 
 //                      Added FLAG_FIND_MATCHED_EX
+// v20.5                Added EI_IS_VERY_DARK, EI_WM_INITDIALOG, EI_WM_CTLCOLOR, EI_WM_THEMECHANGED, EI_INIT_LISTVIEW
 
 #pragma once
 
@@ -298,6 +299,7 @@
 #define E_RETRY                             _HRESULT_TYPEDEF_(0xa0000033L)  // used internally
 #define E_WRAP_CANCEL						_HRESULT_TYPEDEF_(0xa0000034L)  // used internally
 #define E_TOO_MANY_LINES					_HRESULT_TYPEDEF_(0xa0000035L)  // used internally
+#define E_DECIMAL_NUMBER					_HRESULT_TYPEDEF_(0xa0000036L)  // used internally
 
 #define S_MATCHED							_HRESULT_TYPEDEF_(0x20000001L)
 #define S_MATCHED_IGNORED					_HRESULT_TYPEDEF_(0x20000002L)
@@ -306,6 +308,7 @@
 #define S_SKIPPED_IGNORED					_HRESULT_TYPEDEF_(0x20000005L)
 #define S_OPEN_DOCUMENTS_ROUNDED			_HRESULT_TYPEDEF_(0x20000006L)  // used internally
 #define S_FOUND_REACHED_MAX					_HRESULT_TYPEDEF_(0x20000007L)  // used internally
+#define S_DECIMAL_NUMBER					_HRESULT_TYPEDEF_(0x20000008L)  // used internally
 
 #define DEFAULT_DPI		96
 
@@ -793,9 +796,14 @@ typedef struct _LOAD_FILE_INFO_EX_V2 {
 constexpr BYTE FLAG_CR_AND_LF = 0;
 constexpr BYTE FLAG_CR_ONLY = 1;
 constexpr BYTE FLAG_LF_ONLY = 2;
+constexpr BYTE FLAG_COL_CONT = ( FLAG_CR_ONLY | FLAG_LF_ONLY );
+constexpr BYTE FLAG_CRLF_PART = ( FLAG_CR_ONLY | FLAG_LF_ONLY );
+constexpr BYTE FLAG_END_OF_FILE = 8;
 constexpr BYTE FLAG_NEWLINE_MIXED = 0xff;
 constexpr BYTE FLAG_ABORT = 0xfe;
 constexpr BYTE FLAG_FOUND_NULL = 0xfd;
+constexpr BYTE CRLF_USE_DEST = 0xff;
+constexpr BYTE CRLF_EMBEDDED_NL = 0xfe;
 
 typedef struct _GET_LINE_INFO {
     UINT_PTR	cch;		// in
@@ -3906,6 +3914,14 @@ typedef struct _CELL_LOGICAL_INFO
 #define EI_CELL_TO_LOGICAL					375
 #define EI_LOGICAL_TO_CELL					376
 
+// v20.5
+#define NOT_SUPPORTED						2
+#define EI_IS_VERY_DARK						377  // returns NOT_SUPPORTED if dark mode not supported, TRUE if supported and very dark, FALSE if supported but not very dark
+#define EI_WM_INITDIALOG					378  // lParam : hWnd
+#define EI_WM_CTLCOLOR						379  // lParam : wParam from WM_CTLCOLORxxx messages
+#define EI_WM_THEMECHANGED					380  // lParam : hWnd
+#define EI_INIT_LISTVIEW					381
+// end of nCmd
 
 #define SYNC_FLAG_FORCE				1				
 #define SYNC_FLAG_SEND				2
@@ -4278,7 +4294,10 @@ public:
     int         m_nPrinterMarginTop;    // printer top margin  (in 1/1000 inch) (0 - USHRT_MAX (32767))
     int         m_nPrinterMarginBottom; // printer bottom margin
     int         m_nPrinterMarginLeft;   // printer left margin
-    int         m_nWrapMode;        // wrap mode (WRAP_NONE - MAX_WRAP_MODE-1)
+    BYTE        m_nWrapMode;        // wrap mode (WRAP_NONE - MAX_WRAP_MODE-1)
+	BYTE		m_byteDummy7;
+	BYTE		m_byteDummy6;
+	BYTE		m_byteDummy5;
     int         m_nMarginNormal;    // normal line margin (MIN_MARGIN - MAX_MARGIN)
     int         m_nMarginQuote;     // quoted line margin (MIN_MARGIN - MAX_MARGIN)
     int         m_nTabSpace;        // tab columns (LOWER_INDENT - UPPER_INDENT)
@@ -4301,15 +4320,24 @@ public:
 	BYTE        m_byteDummy3;
 	BYTE        m_byteDummy2;
 	BYTE        m_byteDummy1;
-    int         m_nEncodingNew;     // v3: encoding for new files  (1 - CODEPAGE_HEX)
-    int         m_nCrLfNew;         // v3: how to return for new files  (FLAG_CR_AND_LF - FLAG_LF_ONLY)
-	bool         m_bShowOneLineAbove;     // v15.4
-	bool         m_bRememberVisitedLinks; // v15.4
-	bool         m_bFixedPitchFont;
+    UINT        m_nEncodingNew;     // v3: encoding for new files  (1 - CODEPAGE_HEX)
+    BYTE        m_nCrLfNew;         // v3: how to return for new files  (FLAG_CR_AND_LF - FLAG_LF_ONLY)
+	BYTE		m_byteDummy8;
+	BYTE		m_byteDummy9;
+	BYTE		m_byteDummy10;
+	bool        m_bShowOneLineAbove;     // v15.4
+	bool        m_bRememberVisitedLinks; // v15.4
+	bool        m_bFixedPitchFont;
 	BYTE		m_byteMinimapZoomPercent;  // v16.3
     int         m_nEncodingWrite;   // PRO only v3: encoding for saving    (1 - CODEPAGE_HEX)
-    int         m_nCrLfWrite;       // PRO only v3: how to return for saving  (SAVE_CRLF_NONE (0) - SAVE_CRLF_LF_ONLY (3))
-    int         m_nSpecialSyntax;   // v3.16: Special Syntax  (SPECIAL_SYNTAX_NONE (0) - MAX_SPECIAL_SYNTAX-1 (2))
+    BYTE         m_nCrLfWrite;       // PRO only v3: how to return for saving  (SAVE_CRLF_NONE (0) - SAVE_CRLF_LF_ONLY (3))
+	BYTE		m_byteDummy11;
+	BYTE		m_byteDummy12;
+	BYTE		m_byteDummy13;
+    BYTE        m_nSpecialSyntax;   // v3.16: Special Syntax  (SPECIAL_SYNTAX_NONE (0) - MAX_SPECIAL_SYNTAX-1 (2))
+	BYTE		m_byteDummy14;
+	BYTE		m_byteDummy15;
+	BYTE		m_byteDummy16;
     WCHAR       m_chEscape;         // v3.16: Escape character
     bool        m_bPasteAnsi;       // PRO only v3.16: Always Paste as ANSI
     bool        m_bNewTemplate;     // v3.17: Use template for a new file
