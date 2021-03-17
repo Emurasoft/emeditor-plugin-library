@@ -78,14 +78,11 @@ extern HINSTANCE EEGetLocaleInstanceHandle();
 extern HINSTANCE EEGetInstanceHandle();
 extern BOOL IsFileExist( LPCWSTR pszPathName );
 extern BOOL GetModuleFile( LPWSTR szFileName );
-extern void GetModuleFilePath( LPCWSTR szFile, LPWSTR szPath );
-extern HINSTANCE GetInstancePath( LPCWSTR szPath );
 extern WORD EEGetCmdID();
 extern CETLFrameX* GetFrameFromFrame( HWND hwndFrame );
 extern CETLFrameX* GetFrame( HWND hwnd );
 extern CETLFrameX* GetFrameFromDlg( HWND hwnd );
 extern CETLFrameX* GetFrameFromView( HWND hwndView );
-
 
 // global data definition
 class CETLData
@@ -142,6 +139,9 @@ public:
 	}
 #endif
 };
+
+#pragma warning( push ) 
+#pragma warning( disable : 4995 )  // 'PathAddBackslashW': name was marked as #pragma deprecated
 
 template <typename T> class __declspec(novtable) CETLFrame
 {
@@ -635,6 +635,7 @@ public:
 	}
 };
 
+#pragma warning( pop )
 
 #ifndef EE_EXTERN_ONLY
 HINSTANCE EEGetLocaleInstanceHandle()
@@ -682,10 +683,10 @@ void GetModuleFilePath( LPCWSTR szFile, LPWSTR szPath )
 	szPath[0] = '\0';
 	WCHAR szModulePath[MAX_PATH];
 	LPWSTR p = szPath;
-	if( ::GetModuleFileName( EEGetInstanceHandle(), szModulePath, MAX_PATH) ){
+	if( ::GetModuleFileName( EEGetInstanceHandle(), szModulePath, MAX_PATH ) ) {
 		GetFullPathName( szModulePath, MAX_PATH, szPath, &p );
 	}
-	StringCchCopy( p, (size_t)(MAX_PATH - (p - szPath)), szFile );
+	StringCchCopy( p, (size_t)( MAX_PATH - ( p - szPath ) ), szFile );
 }
 
 HINSTANCE GetInstancePath( LPCWSTR szPath, bool bResourceOnly )
