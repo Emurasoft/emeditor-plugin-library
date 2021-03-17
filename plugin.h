@@ -252,6 +252,11 @@
 // v20.4                Added EEID_TOGGLE_NOTIFICATIONS, EEID_REMOVE_EMPTY_COLUMNS, EEID_CLEAR_UNDO_REDO_HISTORY, EEID_FIND_EMPTY_OR_SHORTEST, EEID_CUSTOMIZE_NOTIFICATIONS, EEID_CUSTOMIZE_UPDATE, 
 //                      Added FLAG_FIND_MATCHED_EX
 // v20.5                Added EI_IS_VERY_DARK, EI_WM_INITDIALOG, EI_WM_CTLCOLOR, EI_WM_THEMECHANGED, EI_INIT_LISTVIEW
+// v20.6				Added EE_QUERY_STRING_EX message, Editor_QueryStringEx inline function, QUERY_STRING_INFO structure.
+//                      Added STRING_BUF structure, EI_GET_FILE_NAME_EX command.
+//                      Added EEID_INVERT_SELECTION, EEID_CUSTOMIZE_URI_SCHEMES
+//                      Added hr field to GREP_INFO_EX, BATCH_GREP_INFO structures.
+//                      Added E_WRONG_NUM_FORMAT, E_REGEX_UNKNOWN.
 
 #pragma once
 
@@ -262,6 +267,8 @@
 #ifndef _ASSERT
 #define _ASSERT(expr) ((void)0)
 #endif
+
+#define MAX_LONG_PATH	32768
 
 #define E_DOCUMENT_1_NOT_FOUND				_HRESULT_TYPEDEF_(0xa0000001L)
 #define E_DOCUMENT_2_NOT_FOUND				_HRESULT_TYPEDEF_(0xa0000002L)
@@ -300,6 +307,10 @@
 #define E_WRAP_CANCEL						_HRESULT_TYPEDEF_(0xa0000034L)  // used internally
 #define E_TOO_MANY_LINES					_HRESULT_TYPEDEF_(0xa0000035L)  // used internally
 #define E_DECIMAL_NUMBER					_HRESULT_TYPEDEF_(0xa0000036L)  // used internally
+#define E_LONG_UNC_PATH						_HRESULT_TYPEDEF_(0xa0000037L)  // used internally
+#define E_INSERT_COLUMN_REQUIREMENT			_HRESULT_TYPEDEF_(0xa0000038L)
+#define E_WRONG_NUM_FORMAT					_HRESULT_TYPEDEF_(0xa0000039L)
+#define E_REGEX_UNKNOWN						_HRESULT_TYPEDEF_(0xa0000040L)
 
 #define S_MATCHED							_HRESULT_TYPEDEF_(0x20000001L)
 #define S_MATCHED_IGNORED					_HRESULT_TYPEDEF_(0x20000002L)
@@ -846,6 +857,19 @@ typedef struct _GREP_INFO_EX_V1 {
 	UINT	nLimit;
 } GREP_INFO_EX_V1;
 
+typedef struct _GREP_INFO_EX_V2 {
+	size_t  cbSize;         // sizeof( GREP_INFO_EX )
+	UINT    nCP;
+	UINT64  nFlags;
+	LPCWSTR pszFind;
+	LPCWSTR pszReplace;
+	LPCWSTR pszPath;
+	LPCWSTR pszBackupPath;
+	LPCWSTR pszFilesToIgnore;
+	UINT	nLimit;
+	UINT64 nTotalCount;  // new v20.0
+} GREP_INFO_EX_V2;
+
 typedef struct _GREP_INFO_EX {
 	size_t  cbSize;         // sizeof( GREP_INFO_EX )
 	UINT    nCP;
@@ -857,7 +881,20 @@ typedef struct _GREP_INFO_EX {
 	LPCWSTR pszFilesToIgnore;
 	UINT	nLimit;
 	UINT64 nTotalCount;  // new v20.0
+	HRESULT hr;
 } GREP_INFO_EX;
+
+typedef struct _BATCH_GREP_INFO_V2 {
+	UINT cbSize;         // sizeof( BATCH_GREP_INFO )
+	UINT nBatchCount;
+	UINT64 nBatchFlags;
+	UINT64 nTotalCount;
+	LPCWSTR pszPath;
+	LPCWSTR pszBackupPath;
+	LPCWSTR pszFilesToIgnore;
+	UINT    nCP;
+	UINT	nLimit;
+} BATCH_GREP_INFO_V2;
 
 typedef struct _BATCH_GREP_INFO {
 	UINT cbSize;         // sizeof( BATCH_GREP_INFO )
@@ -869,6 +906,7 @@ typedef struct _BATCH_GREP_INFO {
 	LPCWSTR pszFilesToIgnore;
 	UINT    nCP;
 	UINT	nLimit;
+	HRESULT hr;
 } BATCH_GREP_INFO;
 
 typedef struct _GREP_INFOA {
@@ -3730,6 +3768,32 @@ inline UINT_PTR Editor_SetMultiSel( HWND hwnd, UINT_PTR iSel, const SEL_INFO* pS
 	return (UINT_PTR)SNDMSG( hwnd, EE_SET_MULTI_SEL, (WPARAM)iSel, (LPARAM)pSelInfo );
 }
 
+typedef struct _QUERY_STRING_INFO {
+	UINT cbSize;
+	UINT nCmdID;
+	UINT nFlags;
+	UINT cchBuf;
+	LPWSTR pBuf;
+} QUERY_STRING_INFO;
+
+#define QUERY_STRING_LONG_TITLE		0
+#define QUERY_STRING_SHORT_TITLE	1
+
+#define EE_QUERY_STRING_EX					(EE_FIRST+125)
+// (QUERY_STRING_INFO*)lParam = pInfo
+// returns (HRESULT)hr
+
+inline HRESULT Editor_QueryStringEx( HWND hwnd, UINT nCmdID, LPWSTR pBuf, UINT cchBuf, UINT nFlags )
+{
+	_ASSERT( hwnd && IsWindow( hwnd ) );
+	QUERY_STRING_INFO info;
+	info.cbSize = sizeof( info );
+	info.nCmdID = nCmdID;
+	info.pBuf = pBuf;
+	info.cchBuf = cchBuf;
+	info.nFlags = nFlags;
+	return (HRESULT)SNDMSG( hwnd, EE_QUERY_STRING_EX, 0, (LPARAM)&info );
+}
 
 //
 #define EE_LAST                 (EE_FIRST+255)
@@ -3758,6 +3822,11 @@ inline UINT_PTR Editor_SetMultiSel( HWND hwnd, UINT_PTR iSel, const SEL_INFO* pS
 #define FLAG_CLOSE_ON_EXIT			0x0400
 #define FLAG_ADD_EOF				0x0800
 
+typedef struct _STRING_BUF {
+	LPWSTR pBuf;
+	UINT cchBuf;
+} STRING_BUF;
+
 #define EI_GET_ENCODE           256
 #define EI_SET_ENCODE           257
 #define EI_GET_SIGNATURE        268
@@ -3769,6 +3838,7 @@ inline UINT_PTR Editor_SetMultiSel( HWND hwnd, UINT_PTR iSel, const SEL_INFO* pS
 #define EI_GET_SHOW_TAG         276
 #define EI_SET_SHOW_TAG         277
 #define EI_GET_FILE_NAMEA       278
+#define EI_GET_FILE_NAME_EX		279
 #define EI_GET_FILE_NAMEW       280
 #define EI_IS_PROPORTIONAL_FONT 282
 #define EI_GET_NEXT_BOOKMARK    284
@@ -5303,6 +5373,9 @@ public:
 #define EEID_CLEAR_UNDO_REDO_HISTORY      4063
 #define EEID_FIND_EMPTY_OR_SHORTEST       4064
 
+// v20.6
+#define EEID_INVERT_SELECTION             4065
+
 // other commands
 #define EEID_FILE_MRU_FILE1               4609  // to EEID_FILE_MRU_FILE1 + 63
 #define EEID_MRU_FONT1                    4736  // to EEID_MRU_FONT1 + 63
@@ -5408,6 +5481,7 @@ public:
 #define EEID_CUSTOMIZE_VALIDATION         9062
 #define EEID_CUSTOMIZE_NOTIFICATIONS      9063
 #define EEID_CUSTOMIZE_UPDATE             9064
+#define EEID_CUSTOMIZE_URI_SCHEMES        9065
 
 // for Projects plug-in
 #ifdef USE_PROJECTS_PLUGIN
