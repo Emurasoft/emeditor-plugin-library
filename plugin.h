@@ -257,6 +257,8 @@
 //                      Added EEID_INVERT_SELECTION, EEID_CUSTOMIZE_URI_SCHEMES
 //                      Added hr field to GREP_INFO_EX, BATCH_GREP_INFO structures.
 //                      Added E_WRONG_NUM_FORMAT, E_REGEX_UNKNOWN.
+// v20.7                Added EEID_CUSTOMIZE_CLIPBOARD command.
+//                      Added EI_GET_VIEW_FONT, EI_GET_HIDE_QUOTES, EI_SET_HIDE_QUOTES
 
 #pragma once
 
@@ -3991,6 +3993,12 @@ typedef struct _CELL_LOGICAL_INFO
 #define EI_WM_CTLCOLOR						379  // lParam : wParam from WM_CTLCOLORxxx messages
 #define EI_WM_THEMECHANGED					380  // lParam : hWnd
 #define EI_INIT_LISTVIEW					381
+
+// v20.7
+#define EI_GET_VIEW_FONT					382
+#define EI_GET_HIDE_QUOTES					383
+#define EI_SET_HIDE_QUOTES					384
+
 // end of nCmd
 
 #define SYNC_FLAG_FORCE				1				
@@ -4269,10 +4277,6 @@ typedef struct _CELL_LOGICAL_INFO
 #define SIZE_OF_CUSTOMIZE_INFO_OLD      6660   // old size before v9
 #define SIZE_OF_CUSTOMIZE_INFO_2        ((MAX_REGEX_INDENT*4)*sizeof(WCHAR))
 #define SIZE_OF_CUSTOMIZE_INFO_V9      (SIZE_OF_CUSTOMIZE_INFO_OLD+SIZE_OF_CUSTOMIZE_INFO_2)   // new size v9
-
-#define MAX_PAREN_SIZE	11
-#define DEF_PAREN_BITS	0x07f7
-#define HTML_PAREN_BITS 0x07ff
 
 #define HIGHLIGHT_SELECTION_NONE		0
 #define HIGHLIGHT_SELECTION_SELECT_ONLY	1
@@ -5482,6 +5486,7 @@ public:
 #define EEID_CUSTOMIZE_NOTIFICATIONS      9063
 #define EEID_CUSTOMIZE_UPDATE             9064
 #define EEID_CUSTOMIZE_URI_SCHEMES        9065
+#define EEID_CUSTOMIZE_CLIPBOARD          9066
 
 // for Projects plug-in
 #ifdef USE_PROJECTS_PLUGIN
