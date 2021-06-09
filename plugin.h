@@ -644,8 +644,9 @@
 #define SMART_COLOR_VALIDATOR_ERROR		97  // v19.0
 #define SMART_COLOR_VALIDATOR_WARNING	98  // v19.0
 #define SMART_COLOR_VALIDATOR_MESSAGE	99  // v19.0
+#define SMART_COLOR_EVEN_LINES			100 // v20.8
 
-#define MAX_SMART_COLOR					100  // 96
+#define MAX_SMART_COLOR					101
 
 #define SMART_COLOR_INVALID				MAX_SMART_COLOR
 
@@ -3998,6 +3999,9 @@ typedef struct _CELL_LOGICAL_INFO
 #define EI_GET_VIEW_FONT					382
 #define EI_GET_HIDE_QUOTES					383
 #define EI_SET_HIDE_QUOTES					384
+
+// v20.8
+#define EI_ENABLE_WM_CHAR					385  // used internally while running macros
 
 // end of nCmd
 
