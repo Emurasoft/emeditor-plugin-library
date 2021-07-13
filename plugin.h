@@ -257,9 +257,12 @@
 //                      Added EEID_INVERT_SELECTION, EEID_CUSTOMIZE_URI_SCHEMES
 //                      Added hr field to GREP_INFO_EX, BATCH_GREP_INFO structures.
 //                      Added E_WRONG_NUM_FORMAT, E_REGEX_UNKNOWN.
-// v20.7                Added EEID_CUSTOMIZE_CLIPBOARD command.
+// v20.7                Added EEID_CUSTOMIZE_CLIPBOARD, EEID_MACRO_STOP, EEID_CSV_HIDE_QUOTES command.
 //                      Added EI_GET_VIEW_FONT, EI_GET_HIDE_QUOTES, EI_SET_HIDE_QUOTES
-
+// v20.9				Added EI_GET_SYNC
+//                      Added EP_SYNC_NOW
+//                      Added EEID_TOOLBAR1, EEID_ALL_BASIC_TOOLBARS, EEID_ALL_SPECIAL_TOOLBARS, EEID_FINDBAR_FIND_DLG
+//
 #pragma once
 
 #ifdef __cplusplus
@@ -415,6 +418,7 @@
 #define SIGNATURE_FIND_LIST         0x00FF0200
 #define SIGNATURE_PIK_LIST          0x00FF0300
 #define SIGNATURE_PIB_LIST_2        0x00FF0401
+#define SIGNATURE_PIB_LIST_3        0x00FF0402
 #define SIGNATURE_ASSOCIATE_LIST    0x00FF0500
 #define SIGNATURE_NEW_ASSOCIATE_LIST   0x00FF0501
 #define SIGNATURE_CODEPAGE_LIST_2   0x00FF0601
@@ -4003,7 +4007,19 @@ typedef struct _CELL_LOGICAL_INFO
 // v20.8
 #define EI_ENABLE_WM_CHAR					385  // used internally while running macros
 
+// v20.9
+#define EI_GET_SYNC							386
+
 // end of nCmd
+
+#define SYNC_SETTINGS_FALSE			0
+#define SYNC_SETTINGS_TRUE			1
+#define SYNC_SETTINGS_SEND			2
+#define SYNC_SETTINGS_RECEIVE		4
+#define SYNC_VIA_MS_ACCOUNT			0
+#define SYNC_VIA_NETWORK_FOLDER		8
+#define SYNC_SETTINGS_PLUGINS		0x0010
+#define	DEF_SYNC_SETTIGNS			(SYNC_SETTINGS_FALSE | SYNC_SETTINGS_SEND | SYNC_SETTINGS_RECEIVE | SYNC_VIA_MS_ACCOUNT)
 
 #define SYNC_FLAG_FORCE				1				
 #define SYNC_FLAG_SEND				2
@@ -4230,6 +4246,7 @@ typedef struct _CELL_LOGICAL_INFO
 #define EP_GET_STATUS_MESSAGE	(EP_FIRST+14)
 #define EP_DISABLE_AUTO_COMPLETE	(EP_FIRST+15)
 #define EP_USER_MSG				(EP_FIRST+16)
+#define EP_SYNC_NOW				(EP_FIRST+17)
 
 #define EP_LAST                 (EP_FIRST+50)
 
@@ -5384,6 +5401,15 @@ public:
 // v20.6
 #define EEID_INVERT_SELECTION             4065
 
+// v20.7
+#define EEID_MACRO_STOP                   4066
+#define EEID_CSV_HIDE_QUOTES              4067
+
+// v20.9
+#define EEID_ALL_BASIC_TOOLBARS           4068
+#define EEID_ALL_SPECIAL_TOOLBARS         4069
+#define EEID_FINDBAR_FIND_DLG             4070
+
 // other commands
 #define EEID_FILE_MRU_FILE1               4609  // to EEID_FILE_MRU_FILE1 + 63
 #define EEID_MRU_FONT1                    4736  // to EEID_MRU_FONT1 + 63
@@ -5408,6 +5434,7 @@ public:
 #define EEID_WORKSPACE_RECENT_FILE1       22784 // to EEID_WORKSPACE_RECENT_FILE1 + 63
 #define EEID_UNDO_RECENT				  22848 // to EEID_UNDO_RECENT + 63
 #define EEID_REDO_RECENT				  22912 // to EEID_REDO_RECENT + 63
+#define EEID_TOOLBAR1					  22976 // to EEID_TOOLBAR1 + 256 (v20.9)
 
 #define EEID_CHARSET_DEFAULT              8704
 #define EEID_CHARSET_ARABIC               8705

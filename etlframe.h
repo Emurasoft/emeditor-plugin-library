@@ -284,6 +284,11 @@ public:
 		return lResult;
 	}
 
+	virtual LRESULT SyncNow( HWND /*hwnd*/, UINT /*nFlags*/ )
+	{
+		return 0;
+	}
+
 	LRESULT PlugInProc( HWND hwnd, UINT nMsg, WPARAM wParam, LPARAM lParam )
 	{
 		LRESULT lResult = 0;
@@ -312,6 +317,9 @@ public:
 			break;
 		case EP_USER_MSG:
 			lResult = pT->UserMessage( hwnd, wParam, lParam );
+			break;
+		case EP_SYNC_NOW:
+			lResult = SyncNow( hwnd, (UINT)wParam );
 			break;
 		}
 		return lResult;
