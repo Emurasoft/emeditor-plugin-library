@@ -262,6 +262,8 @@
 // v20.9				Added EI_GET_SYNC
 //                      Added EP_SYNC_NOW
 //                      Added EEID_TOOLBAR1, EEID_ALL_BASIC_TOOLBARS, EEID_ALL_SPECIAL_TOOLBARS, EEID_FINDBAR_FIND_DLG
+// v21.0                Added EEID_PASTE_HTML, EEID_MAIN_MENU, EEID_CUSTOMIZE_LAYOUTS, EEID_LAYOUT1 command.
+//                      Added COLUMN_DELETE, COLUMN_SELECT, COLUMN_SELECT_NO_HEADINGS flags.
 //
 #pragma once
 
@@ -325,6 +327,7 @@
 #define S_OPEN_DOCUMENTS_ROUNDED			_HRESULT_TYPEDEF_(0x20000006L)  // used internally
 #define S_FOUND_REACHED_MAX					_HRESULT_TYPEDEF_(0x20000007L)  // used internally
 #define S_DECIMAL_NUMBER					_HRESULT_TYPEDEF_(0x20000008L)  // used internally
+#define S_UTF8_DETECTED						_HRESULT_TYPEDEF_(0x20000009L)  // used internally
 
 #define DEFAULT_DPI		96
 
@@ -2896,8 +2899,10 @@ typedef struct _CLIP_INFO {
 #define CI_SET_CLIP_POS	4
 #define CI_ROTATE_CLIP	5
 #define CI_MOVE_CLIP	6
+#define CI_CLIP_AVAILABLE 7
 
 #define CI_FLAG_NO_UPDATE_REAL_CLIP	0x00001000
+#define CI_FLAG_HTML				0x00002000
 
 #define MAX_CLIP_LEN	0x00020000
 
@@ -3697,14 +3702,17 @@ inline HRESULT Editor_Numbering( HWND hwnd, LPCWSTR pszFirst, LPCWSTR pszInc, IN
 	return (HRESULT)SNDMSG( (hwnd), EE_NUMBERING, (WPARAM)&ni, 0 );
 }
 
-#define COLUMN_MOVE				0
-#define COLUMN_COPY				1
-#define COLUMN_CONCAT			2
-#define COLUMN_COALESCE			3
-#define COLUMN_SPLIT_TO_COLUMNS	4
-#define COLUMN_SPLIT_TO_LINES	5
-#define COLUMN_SPLIT_TO_NONE	6
-#define COLUMN_ACTION_MASK		7
+#define COLUMN_MOVE					0
+#define COLUMN_COPY					1
+#define COLUMN_CONCAT				2
+#define COLUMN_COALESCE				3
+#define COLUMN_SPLIT_TO_COLUMNS		4
+#define COLUMN_SPLIT_TO_LINES		5
+#define COLUMN_SPLIT_TO_NONE		6
+#define COLUMN_DELETE				7
+#define COLUMN_SELECT				8
+#define COLUMN_SELECT_NO_HEADINGS	9
+#define COLUMN_ACTION_MASK			0x000f
 
 typedef struct _EDIT_COLUMN_INFO {
 	UINT cbSize;
@@ -5410,6 +5418,10 @@ public:
 #define EEID_ALL_SPECIAL_TOOLBARS         4069
 #define EEID_FINDBAR_FIND_DLG             4070
 
+// v21.0
+#define EEID_PASTE_HTML                   4071
+#define EEID_MAIN_MENU                    4072
+
 // other commands
 #define EEID_FILE_MRU_FILE1               4609  // to EEID_FILE_MRU_FILE1 + 63
 #define EEID_MRU_FONT1                    4736  // to EEID_MRU_FONT1 + 63
@@ -5430,6 +5442,7 @@ public:
 #define EEID_SELECT_DICTIONARY			  22016 // to EEID_SELECT_DICTIONARY + 255
 #define EEID_MARKER1                      22272 // to EEID_MARKER1 + 255
 #define EEID_SV_MODE					  22528 // to EEID_SV_MODE + 63
+#define EEID_LAYOUT1                     22592 // to EEID_LAYOUT1 + 15
 #define EEID_CONVERT_TO_SV                22656 // to EEID_CONVERT_TO_SV + 63
 #define EEID_WORKSPACE_RECENT_FILE1       22784 // to EEID_WORKSPACE_RECENT_FILE1 + 63
 #define EEID_UNDO_RECENT				  22848 // to EEID_UNDO_RECENT + 63
@@ -5518,6 +5531,7 @@ public:
 #define EEID_CUSTOMIZE_UPDATE             9064
 #define EEID_CUSTOMIZE_URI_SCHEMES        9065
 #define EEID_CUSTOMIZE_CLIPBOARD          9066
+#define EEID_CUSTOMIZE_LAYOUTS            9067
 
 // for Projects plug-in
 #ifdef USE_PROJECTS_PLUGIN
