@@ -264,7 +264,7 @@
 //                      Added EEID_TOOLBAR1, EEID_ALL_BASIC_TOOLBARS, EEID_ALL_SPECIAL_TOOLBARS, EEID_FINDBAR_FIND_DLG
 // v21.0                Added EEID_PASTE_HTML, EEID_MAIN_MENU, EEID_CUSTOMIZE_LAYOUTS, EEID_LAYOUT1 command.
 //                      Added COLUMN_DELETE, COLUMN_SELECT, COLUMN_SELECT_NO_HEADINGS flags.
-//
+//                      MAX_FILTER_BUF was changed from 10001 to 50001
 #pragma once
 
 #ifdef __cplusplus
@@ -328,6 +328,8 @@
 #define S_FOUND_REACHED_MAX					_HRESULT_TYPEDEF_(0x20000007L)  // used internally
 #define S_DECIMAL_NUMBER					_HRESULT_TYPEDEF_(0x20000008L)  // used internally
 #define S_UTF8_DETECTED						_HRESULT_TYPEDEF_(0x20000009L)  // used internally
+#define S_EDIT_TEMP							_HRESULT_TYPEDEF_(0x2000000AL)
+#define S_ASYNC								_HRESULT_TYPEDEF_(0x2000000BL)  // used internally
 
 #define DEFAULT_DPI		96
 
@@ -529,7 +531,7 @@
 
 #define MAX_PLUG_IN_NAME        MAX_PATH
 #define MAX_FILE_FILTER_LENGTH    256
-#define MAX_FILTER_BUF			10001  // including NULL character
+#define MAX_FILTER_BUF			50001  // including NULL character, increased from 10001 on v21.1
 #define MAX_CONFIG_NAME         260
 #define MAX_DEF_CONFIG_NAME		32
 #define MAX_ASSOCIATE_LENGTH    16
@@ -2167,7 +2169,7 @@ inline int Editor_GetSelTypeEx( HWND hwnd, BOOL bNeedAlways )
   // (WCHAR)wParam = ch
   // (int)lParam = 0
   // 2.
-  // (UINT)wParam = nScaler
+  // (UINT)wParam = nScalar
   // (int)lParam = -1
   // 3.
   // (INT_PTR)wParam = cchStr
@@ -2752,7 +2754,6 @@ typedef struct _RUN_MACRO_INFO {
 } RUN_MACRO_INFO;
 
 
-#define S_EDIT_TEMP	 ((HRESULT)2)
 #define MACRO_LANG_JSCRIPT		0
 #define MACRO_LANG_VBSCRIPT		1
 #define MACRO_LANG_CHAKRA		2
@@ -5421,6 +5422,7 @@ public:
 // v21.0
 #define EEID_PASTE_HTML                   4071
 #define EEID_MAIN_MENU                    4072
+#define EEID_MACRO_RUN_CLIPBOARD          4074
 
 // other commands
 #define EEID_FILE_MRU_FILE1               4609  // to EEID_FILE_MRU_FILE1 + 63
