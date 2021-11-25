@@ -265,6 +265,8 @@
 // v21.0                Added EEID_PASTE_HTML, EEID_MAIN_MENU, EEID_CUSTOMIZE_LAYOUTS, EEID_LAYOUT1 command.
 //                      Added COLUMN_DELETE, COLUMN_SELECT, COLUMN_SELECT_NO_HEADINGS flags.
 //                      MAX_FILTER_BUF was changed from 10001 to 50001
+// v21.2                Added EEID_CUSTOMIZE_CSV_OPTIONS, EEID_REPEAT_STEPS command.
+//
 #pragma once
 
 #ifdef __cplusplus
@@ -4105,8 +4107,18 @@ typedef struct _CELL_LOGICAL_INFO
 #define FLAG_NORM_FORM_KC			7
 #define FLAG_NORM_FORM_KD			8
 #define FLAG_NORM_ALL				5
-#define MAX_NORM_FORM				4
-#define FLAG_CONVERT_MASK           0x000f
+
+#define FLAG_ENCODE_HTML_CHAR_REF           0x00010000
+#define FLAG_ENCODE_HTML_CHAR_ENTITY_REF    0x00010001
+#define FLAG_DECODE_HTML_CHAR_REF           0x00010002
+#define FLAG_DECODE_UCN                     0x00010003
+#define FLAG_ENCODE_UCN				        0x00010004
+#define FLAG_DECODE_PERCENT                 0x00010005
+#define FLAG_DECODE_PERCENT_UTF8            0x00010006
+#define FLAG_ENCODE_PERCENT                 0x00010007
+#define FLAG_ENCODE_PERCENT_UTF8            0x00010008
+
+#define FLAG_CONVERT_MASK                   0x0001000f
 #define FLAG_JAPANESE_YEN			0x0010
 #define FLAG_KOREAN_WON				0x0020
 #define FLAG_RIGHT_SINGLE_QUOTATION 0x0040  // v19.1
@@ -5424,6 +5436,9 @@ public:
 #define EEID_MAIN_MENU                    4072
 #define EEID_MACRO_RUN_CLIPBOARD          4074
 
+// v21.2
+#define EEID_REPEAT_STEPS                 4075
+
 // other commands
 #define EEID_FILE_MRU_FILE1               4609  // to EEID_FILE_MRU_FILE1 + 63
 #define EEID_MRU_FONT1                    4736  // to EEID_MRU_FONT1 + 63
@@ -5534,6 +5549,7 @@ public:
 #define EEID_CUSTOMIZE_URI_SCHEMES        9065
 #define EEID_CUSTOMIZE_CLIPBOARD          9066
 #define EEID_CUSTOMIZE_LAYOUTS            9067
+#define EEID_CUSTOMIZE_CSV_OPTIONS        9068
 
 // for Projects plug-in
 #ifdef USE_PROJECTS_PLUGIN
