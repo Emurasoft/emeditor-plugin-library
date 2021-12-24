@@ -266,6 +266,11 @@
 //                      Added COLUMN_DELETE, COLUMN_SELECT, COLUMN_SELECT_NO_HEADINGS flags.
 //                      MAX_FILTER_BUF was changed from 10001 to 50001
 // v21.2                Added EEID_CUSTOMIZE_CSV_OPTIONS, EEID_REPEAT_STEPS command.
+// v21.3                Added EEID_CSV_NEXT_CELL, EEID_CSV_PREV_CELL, EEID_CSV_UP, EEID_CSV_DOWN command
+// v21.4                Added EE_PIVOT_TABLE, EE_UNPIVOT messages, PIVOT_TABLE_INFO, UNPIVOT_INFO structures, Editor_PivotTable, Editor_Unpivot inline functions.
+//                      Added EEID_PIVOT_TABLE, EEID_TRANSPOSE, EEID_UNPIVOT commands
+//                      Added EI_GET_SPLIT
+//                      Added FLAG_MAKE_LOWER_L, FLAG_MAKE_UPPER_L, FLAG_CAPITALIZE_L, FLAG_TRIM_RIGHT, FLAG_TRIM_LEFT
 //
 #pragma once
 
@@ -289,6 +294,8 @@
 #define E_DIFFERENT_CSV_MODE				_HRESULT_TYPEDEF_(0xa0000008L)
 #define E_NOT_MDI							_HRESULT_TYPEDEF_(0xa0000009L)
 #define E_WRITE_TEMP_FILE					_HRESULT_TYPEDEF_(0xa000000aL)
+#define E_BASE64_LENGTH						_HRESULT_TYPEDEF_(0xa000000bL)
+#define E_BASE64_BINARY						_HRESULT_TYPEDEF_(0xa000000cL)
 #define E_ABORT_NEED_UNDO					_HRESULT_TYPEDEF_(0xa0000010L)
 #define E_CANNOT_FIND_PLUGIN				_HRESULT_TYPEDEF_(0xa0000011L)
 #define E_NO_SELECTION						_HRESULT_TYPEDEF_(0xa0000012L)
@@ -3157,7 +3164,8 @@ inline BOOL Editor_GetColor( HWND hwnd, BOOL bFind, UINT nIndex, COLORREF* pclrT
 #define SORT_MASK_ALL			(SORT_MASK | SORT_IGNORE_PREFIX | SORT_LENGTH_VIEW | SORT_STABLE | SORT_BINARY_COMPARISON | SORT_UNQUOTE_CELLS | SORT_INSPECT_NOT_SEL_ONLY | SORT_GROUP_IDENTICAL)
 #define MANAGE_DUPLICATES_MASK	(MANAGE_DUPLICATES_IGNORE_EMPTY_LINES | MANAGE_DUPLICATES_BOOKMARK | MANAGE_DUPLICATES_ADJACENT_ONLY | MANAGE_DUPLICATES_INCLUDE_ALL | MANAGE_DUPLICATES_IGNORE_CASE | MANAGE_DUPLICATES_IGNORE_EMPTY_CELLS | MANAGE_DUPLIDATES_INSPECT_SEL_ONLY)
 #define DEF_SORT_OPTIONS		(SORT_IGNORE_PREFIX | SORT_BINARY_COMPARISON)
-#define SORT_SPLIT_COLUMN_MASK  (SORT_MASK | SORT_IGNORE_PREFIX | SORT_LENGTH_VIEW | SORT_STABLE | SORT_BINARY_COMPARISON | SORT_GROUP_IDENTICAL | SORT_DELETE_DUPLICATE | SORT_ASCEND | SORT_ASCEND | SORT_LENGTH | SORT_OCCURRENCE | SORT_WORDS | SORT_DATE | SORT_RANDOM | SORT_REVERSE | SORT_IPV4 | SORT_IPV6)
+#define SORT_PIVOT_TABLE_MASK   (SORT_MASK | SORT_IGNORE_PREFIX | SORT_LENGTH_VIEW | SORT_STABLE | SORT_BINARY_COMPARISON | SORT_GROUP_IDENTICAL | SORT_DESCEND | SORT_ASCEND | SORT_LENGTH | SORT_OCCURRENCE | SORT_WORDS | SORT_DATE | SORT_IPV4 | SORT_IPV6)
+#define SORT_SPLIT_COLUMN_MASK  (SORT_MASK | SORT_IGNORE_PREFIX | SORT_LENGTH_VIEW | SORT_STABLE | SORT_BINARY_COMPARISON | SORT_GROUP_IDENTICAL | SORT_DELETE_DUPLICATE | SORT_DESCEND | SORT_ASCEND | SORT_LENGTH | SORT_OCCURRENCE | SORT_WORDS | SORT_DATE | SORT_RANDOM | SORT_REVERSE | SORT_IPV4 | SORT_IPV6)
 #define COMBINE_LINES_FLAG_MASK (SORT_SPLIT_COLUMN_MASK | SORT_DELETE_DUPLICATE | COMBINE_LINES_IGNORE_CASE | SORT_REMOVE_EMPTY)
 
 typedef struct _GET_CELL_INFO {
@@ -3717,21 +3725,34 @@ inline HRESULT Editor_Numbering( HWND hwnd, LPCWSTR pszFirst, LPCWSTR pszInc, IN
 #define COLUMN_SELECT_NO_HEADINGS	9
 #define COLUMN_ACTION_MASK			0x000f
 
-typedef struct _EDIT_COLUMN_INFO {
+typedef struct _EDIT_COLUMN_INFO_V1 {
 	UINT cbSize;
 	UINT nFlags;
 	int  iColumn1;
 	int  iColumn2;
 	int  iColumnTo;
 	LPCWSTR pszInsert;
-} EDIT_COLUMN_INFO;
+} EDIT_COLUMN_INFO_V1;
+
+typedef struct _EDIT_COLUMN_INFO_V2 {
+	UINT cbSize;
+	UINT nFlags;
+	int  iColumn1;
+	int  iColumn2;
+	int  iColumnTo;
+	LPCWSTR pszInsert;
+	UINT    nCombineFlags;
+	LPCWSTR pszLocale;
+} EDIT_COLUMN_INFO_V2;
+
+#define EDIT_COLUMN_INFO EDIT_COLUMN_INFO_V2
 
 #define EE_EDIT_COLUMN (EE_FIRST+121)
 
-inline HRESULT Editor_EditColumn( HWND hwnd, UINT nFlags, int iColumnFrom1, int iColumnFrom2, int iColumnTo, LPCWSTR pszInsert )
+inline HRESULT Editor_EditColumn( HWND hwnd, UINT nFlags, int iColumnFrom1, int iColumnFrom2, int iColumnTo, LPCWSTR pszInsert, UINT nCombineFlags = 0, LPCWSTR pszLocale = NULL )
 {
 	_ASSERT( hwnd && IsWindow( hwnd ) );
-	EDIT_COLUMN_INFO mi = { sizeof( mi ), nFlags, iColumnFrom1, iColumnFrom2, iColumnTo, pszInsert };
+	EDIT_COLUMN_INFO mi = { sizeof( mi ), nFlags, iColumnFrom1, iColumnFrom2, iColumnTo, pszInsert, nCombineFlags, pszLocale };
 	return (HRESULT)SNDMSG( ( hwnd ), EE_EDIT_COLUMN, (WPARAM)&mi, 0 );
 }
 
@@ -3813,6 +3834,74 @@ inline HRESULT Editor_QueryStringEx( HWND hwnd, UINT nCmdID, LPWSTR pBuf, UINT c
 	return (HRESULT)SNDMSG( hwnd, EE_QUERY_STRING_EX, 0, (LPARAM)&info );
 }
 
+#define PIVOT_TYPE_COUNT		0
+#define PIVOT_TYPE_SUM			1
+#define PIVOT_TYPE_AVERAGE		2
+#define PIVOT_TYPE_MAX			3
+#define PIVOT_TYPE_MIN			4
+#define MAX_PIVOT_TYPE			5
+#define PIVOT_TYPE_MASK			0x000f
+#define PIVOT_FLAG_TOTAL_ROW	0x1000
+#define PIVOT_FLAG_TOTAL_COL	0x2000
+#define MAX_TOTAL_LABEL		80
+
+typedef struct _PIVOT_TABLE_INFO {
+	UINT cbSize;
+	int iRow;
+	int iColumn;
+	int iValue;
+	UINT nFlags;
+	UINT nSortRow;
+	UINT nSortColumn;
+	int nDecimalPlaces;
+	LPCWSTR pszLocale;
+	LPCWSTR pszTotalRowLabel;
+	LPCWSTR pszTotalColLabel;
+} PIVOT_TABLE_INFO;
+
+#define EE_PIVOT_TABLE					(EE_FIRST+126)
+// (PIVOT_TABLE_INFO*)wParam = pInfo
+// returns (HRESULT)hr
+
+inline HRESULT Editor_PivotTable( HWND hwnd, int iRow, int iColumn, int iValue, UINT nFlags, UINT nSortRow, UINT nSortColumn, LPCWSTR pszLocale, LPCWSTR pszTotalRowLabel, LPCWSTR pszTotalColLabel, int nDecimalPlaces )
+{
+	PIVOT_TABLE_INFO info;
+	info.cbSize = sizeof( info );
+	info.iRow = iRow;
+	info.iColumn = iColumn;
+	info.iValue = iValue;
+	info.nFlags = nFlags;
+	info.nSortRow = nSortRow;
+	info.nSortColumn = nSortColumn;
+	info.pszLocale = pszLocale;
+	info.nDecimalPlaces = nDecimalPlaces;
+	info.pszTotalRowLabel = pszTotalRowLabel;
+	info.pszTotalColLabel = pszTotalColLabel;
+	return (HRESULT)SNDMSG( hwnd, EE_PIVOT_TABLE, (WPARAM)&info, 0 );
+}
+
+typedef struct _UNPIVOT_INFO {
+	UINT cbSize;
+	UINT nFlags;
+	LPCWSTR pszSelect;
+	LPCWSTR pszAttrLabel;
+	LPCWSTR pszValueLabel;
+	int nFooter;
+} UNPIVOT_INFO;
+
+#define EE_UNPIVOT					(EE_FIRST+127)
+// (UNPIVOT_INFO*)wParam = pInfo
+// returns (HRESULT)hr
+
+inline HRESULT Editor_Unpivot( HWND hwnd, LPCWSTR pszSelect, LPCWSTR pszAttrLabel, LPCWSTR pszValueLabel, int nFooter )
+{
+	UNPIVOT_INFO info = { sizeof( info ) };
+	info.pszSelect = pszSelect;
+	info.pszAttrLabel = pszAttrLabel;
+	info.pszValueLabel = pszValueLabel;
+	info.nFooter = nFooter;
+	return (HRESULT)SNDMSG( hwnd, EE_UNPIVOT, (WPARAM)&info, 0 );
+}
 //
 #define EE_LAST                 (EE_FIRST+255)
 
@@ -4021,6 +4110,16 @@ typedef struct _CELL_LOGICAL_INFO
 // v20.9
 #define EI_GET_SYNC							386
 
+// v21.4
+#define SPLIT_NONE		0
+#define SPLIT_HORZ		1
+#define SPLIT_VERT		2
+#define SPLIT_BOTH		3
+#define SPLIT_2_HORZ	10
+#define SPLIT_2_VERT	11
+
+#define EI_GET_SPLIT						387
+
 // end of nCmd
 
 #define SYNC_SETTINGS_FALSE			0
@@ -4107,6 +4206,11 @@ typedef struct _CELL_LOGICAL_INFO
 #define FLAG_NORM_FORM_KC			7
 #define FLAG_NORM_FORM_KD			8
 #define FLAG_NORM_ALL				5
+#define FLAG_MAKE_LOWER_L           9
+#define FLAG_MAKE_UPPER_L           0x000a
+#define FLAG_CAPITALIZE_L           0x000b
+#define FLAG_TRIM_RIGHT				0x000c
+#define FLAG_TRIM_LEFT				0x000d
 
 #define FLAG_ENCODE_HTML_CHAR_REF           0x00010000
 #define FLAG_ENCODE_HTML_CHAR_ENTITY_REF    0x00010001
@@ -4117,6 +4221,11 @@ typedef struct _CELL_LOGICAL_INFO
 #define FLAG_DECODE_PERCENT_UTF8            0x00010006
 #define FLAG_ENCODE_PERCENT                 0x00010007
 #define FLAG_ENCODE_PERCENT_UTF8            0x00010008
+
+#define FLAG_DECODE_BASE64					0x00010009
+#define FLAG_DECODE_BASE64_UTF8				0x0001000a
+#define FLAG_ENCODE_BASE64					0x0001000b
+#define FLAG_ENCODE_BASE64_UTF8				0x0001000c
 
 #define FLAG_CONVERT_MASK                   0x0001000f
 #define FLAG_JAPANESE_YEN			0x0010
@@ -5438,6 +5547,17 @@ public:
 
 // v21.2
 #define EEID_REPEAT_STEPS                 4075
+
+// v21.3
+#define EEID_CSV_NEXT_CELL                4077
+#define EEID_CSV_PREV_CELL                4078
+#define EEID_CSV_UP                       4079
+#define EEID_CSV_DOWN                     4080
+
+// v21.4
+#define EEID_PIVOT_TABLE                  4081
+#define EEID_TRANSPOSE                    4082
+#define EEID_UNPIVOT                      4083
 
 // other commands
 #define EEID_FILE_MRU_FILE1               4609  // to EEID_FILE_MRU_FILE1 + 63
