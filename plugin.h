@@ -271,6 +271,13 @@
 //                      Added EEID_PIVOT_TABLE, EEID_TRANSPOSE, EEID_UNPIVOT commands
 //                      Added EI_GET_SPLIT
 //                      Added FLAG_MAKE_LOWER_L, FLAG_MAKE_UPPER_L, FLAG_CAPITALIZE_L, FLAG_TRIM_RIGHT, FLAG_TRIM_LEFT
+// v21.5                Added CCustomizeInfo::m_bEnsureFinalNL
+//                      Added EEID_PROPERTY_CHAR_CHECK
+//                      Added SMART_COLOR_INVALID_CHAR
+//                      Added EI_GET_SUM
+// v21.6                Added EI_SET_FILE_NAMEW
+//                      Added FLAG_FIND_LINK_FILE
+//                      Added EEID_FILTERBAR_EXTRACT_MATCHES
 //
 #pragma once
 
@@ -346,6 +353,7 @@
 #define CLR_NONE                0xFFFFFFFFL
 #endif
 
+#define REG_VERSION_21_5		29
 #define REG_VERSION_20_3		28
 #define REG_VERSION_19_6        27
 #define REG_VERSION_19_0        26
@@ -364,7 +372,7 @@
 #define REG_VERSION_13          13
 #define REG_VERSION_10          10
 #define REG_VERSION_3           3  // v3
-#define REG_VERSION             REG_VERSION_20_3
+#define REG_VERSION             REG_VERSION_21_5
 
 #define UPDATE_TREE_NONE			0
 #define UPDATE_OUTLINE				1
@@ -532,7 +540,11 @@
 #define CODEPAGE_MORE				66309  // internal use only
 
 #ifdef _WIN64
+#ifdef _DEBUG
+#define MAX_UNDO_COUNT			0x01000000
+#else
 #define MAX_UNDO_COUNT			0x08000000
+#endif
 #else
 #define MAX_UNDO_COUNT			0x00100000  // 0x00800000
 #endif
@@ -663,8 +675,9 @@
 #define SMART_COLOR_VALIDATOR_WARNING	98  // v19.0
 #define SMART_COLOR_VALIDATOR_MESSAGE	99  // v19.0
 #define SMART_COLOR_EVEN_LINES			100 // v20.8
+#define SMART_COLOR_INVALID_CHAR		101 // v21.5
 
-#define MAX_SMART_COLOR					101
+#define MAX_SMART_COLOR					102
 
 #define SMART_COLOR_INVALID				MAX_SMART_COLOR
 
@@ -3947,6 +3960,7 @@ typedef struct _STRING_BUF {
 #define EI_GET_FILE_NAMEA       278
 #define EI_GET_FILE_NAME_EX		279
 #define EI_GET_FILE_NAMEW       280
+#define EI_SET_FILE_NAMEW       281
 #define EI_IS_PROPORTIONAL_FONT 282
 #define EI_GET_NEXT_BOOKMARK    284
 #define EI_GET_HILITE_FIND      286
@@ -4119,6 +4133,16 @@ typedef struct _CELL_LOGICAL_INFO
 #define SPLIT_2_VERT	11
 
 #define EI_GET_SPLIT						387
+
+typedef struct _SUM_INFO
+{
+	UINT cbSize;
+	INT64 nCount;
+	INT64 nSum;
+	double dSum;
+} SUM_INFO;
+
+#define EI_GET_SUM							388
 
 // end of nCmd
 
@@ -4302,6 +4326,7 @@ typedef struct _CELL_LOGICAL_INFO
 #define FLAG_FILTER_END					0x0000'8000'0000'0000ull
 #define FLAG_FIND_UPDATE_MARKER			0x0004'0000'0000'0000ull  // internal use only
 #define FLAG_FIND_COUNT_FREQUENCY       0x0008'0000'0000'0000ull
+#define FLAG_FIND_LINK_FILE				0x0020'0000'0000'0000ull
 #define FLAG_FIND_NO_OVERLAP			0x0040'0000'0000'0000ull
 #define FLAG_FIND_LOOKAROUND			0x0080'0000'0000'0000ull
 #define FLAG_FIND_REPLACE_LATER			0x0100'0000'0000'0000ull  // internal use only
@@ -4331,7 +4356,7 @@ typedef struct _CELL_LOGICAL_INFO
 #define FLAG_BATCH_FIND_MASK			(FLAG_FIND_CASE | FLAG_FIND_ONLY_WORD | FLAG_FIND_REG_EXP | FLAG_FIND_NUMBER_RANGE | FLAG_FIND_ESCAPE)
 #define FLAG_BATCH_GREP_MASK			FLAG_BATCH_FIND_MASK
 #define FLAG_FILTER_MASK				(FLAG_FIND_CASE | FLAG_FIND_ESCAPE | FLAG_FIND_ONLY_WORD | FLAG_FIND_REG_EXP | FLAG_FIND_INCREMENTAL | FLAG_FIND_NEGATIVE | FLAG_FIND_NUMBER_RANGE)
-#define FLAG_ADVANCED_FILTER_MASK		(FLAG_FILTER_MASK | FLAG_FIND_LOGICAL_OR | FLAG_FIND_WHOLE_STRING | FLAG_FILTER_ENABLED | FLAG_FIND_MATCH_NL | FLAG_FIND_CR_ONLY | FLAG_FIND_LF_ONLY | FLAG_FIND_CR_LF | FLAG_FIND_NL_OTHERS | FLAG_FIND_BOOKMARKED_ONLY | FLAG_FIND_UNBOOKMARKED_ONLY | FLAG_FILTER_BEGIN | FLAG_FILTER_END)
+#define FLAG_ADVANCED_FILTER_MASK		(FLAG_FILTER_MASK | FLAG_FIND_LOGICAL_OR | FLAG_FIND_WHOLE_STRING | FLAG_FILTER_ENABLED | FLAG_FIND_MATCH_NL | FLAG_FIND_CR_ONLY | FLAG_FIND_LF_ONLY | FLAG_FIND_CR_LF | FLAG_FIND_NL_OTHERS | FLAG_FIND_BOOKMARKED_ONLY | FLAG_FIND_UNBOOKMARKED_ONLY | FLAG_FILTER_BEGIN | FLAG_FILTER_END | FLAG_FIND_LINK_FILE)
 #define FLAG_MACRO_FILTER_MASK			((FLAG_ADVANCED_FILTER_MASK | FLAG_FIND_CONTINUE | FLAG_FIND_KEEP_PREVIOUS | FLAG_FIND_REMOVE_LAST) & ~FLAG_FILTER_ENABLED)
 #define FLAG_FIND_SAVE_MASK				((FLAG_GREP_MASK | FLAG_FIND_MASK) & ~(FLAG_FIND_NO_PROMPT | FLAG_FIND_BOOKMARK | FLAG_FIND_SAVE_HISTORY | FLAG_FIND_SELECT_ALL | FLAG_FIND_ADD_NEXT | FLAG_FIND_EXTRACT | FLAG_FIND_FILTER))
 
@@ -4510,6 +4535,16 @@ typedef struct _CELL_LOGICAL_INFO
 #define DEF_VALIDATOR_CSV			(VALIDATOR_ENABLED | VALIDATOR_SHOW_ON_ERRORS | VALIDATOR_TYPE_CSV)
 #define DEF_VALIDATOR_XML			(VALIDATOR_ENABLED | VALIDATOR_SHOW_ON_ERRORS | VALIDATOR_TYPE_XML)
 
+// Character Check
+#define CC_INVALID					(BYTE)0x01  // was m_bPromptNotAnsi
+#define CC_INVISIBLE				(BYTE)0x02
+#define CC_CONTROL					(BYTE)0x04
+#define CC_SURROGATE				(BYTE)0x08
+#define CC_USER_DEFINED				(BYTE)0x10
+#define CC_ACCEPT_USER_DEFINED		(BYTE)0x20
+#define CC_CHECK_SAVING				(BYTE)0x40
+#define DEF_CC						(CC_INVALID | CC_INVISIBLE | CC_CONTROL)
+
 class CCustomizeInfo
 {
 public:
@@ -4541,10 +4576,7 @@ public:
 	bool		m_bPreferUtf8;		// v14.6
     UINT        m_nAutoSaveTime;    // PRO only  auto save time  (0 - MAX_AUTO_SAVE_TIME (9999))
     int         m_nCheckFileChanged; // v3: changed by another program  (0 - MAX_CHECK_FILE_CHANGED-1)
-	BYTE        m_byteDummy4;      // was        m_nDummy; // m_nUndoBufferSize;  // PRO only  undo max number
-	BYTE        m_byteDummy3;
-	BYTE        m_byteDummy2;
-	BYTE        m_byteDummy1;
+	UINT		m_nDummy;
     UINT        m_nEncodingNew;     // v3: encoding for new files  (1 - CODEPAGE_HEX)
     BYTE        m_nCrLfNew;         // v3: how to return for new files  (FLAG_CR_AND_LF - FLAG_LF_ONLY)
 	BYTE		m_byteDummy8;
@@ -4556,7 +4588,7 @@ public:
 	BYTE		m_byteMinimapZoomPercent;  // v16.3
     int         m_nEncodingWrite;   // PRO only v3: encoding for saving    (1 - CODEPAGE_HEX)
     BYTE         m_nCrLfWrite;       // PRO only v3: how to return for saving  (SAVE_CRLF_NONE (0) - SAVE_CRLF_LF_ONLY (3))
-	BYTE		m_byteDummy11;
+	bool		m_bEnsureFinalNL;   // v21.5
 	BYTE		m_byteDummy12;
 	BYTE		m_byteDummy13;
     BYTE        m_nSpecialSyntax;   // v3.16: Special Syntax  (SPECIAL_SYNTAX_NONE (0) - MAX_SPECIAL_SYNTAX-1 (2))
@@ -4659,7 +4691,7 @@ public:
     bool        m_bShowPage;                // PRO only v3: display page number
     bool        m_bUsePrinterFont;          // v3: choose font for default printer
     bool        m_bSignatureNew;            // PRO only v3: Unicode, UTF-8 signature for new files
-    bool        m_bPromptNotAnsi;           // v3: prompt on saving if unicode characters cannot convert to ANSI
+	BYTE        m_byteCharCheck;            // v21.5, was m_bPromptNotAnsi; // prompt on saving if unicode characters cannot convert to ANSI
     bool        m_bSignatureWrite;          // PRO only  v3: Unicode, UTF-8 signature for saving
     bool        m_bIgnoreColorPrint;        // v3.08: Ignore Color and Underlines (Print)
     bool        m_bNoFullPathIfNotActive;   // v3.08: Display file name without full path if the window is not active
@@ -5559,6 +5591,9 @@ public:
 #define EEID_TRANSPOSE                    4082
 #define EEID_UNPIVOT                      4083
 
+// v21.6
+#define EEID_FILTERBAR_EXTRACT_MATCHES    4084
+
 // other commands
 #define EEID_FILE_MRU_FILE1               4609  // to EEID_FILE_MRU_FILE1 + 63
 #define EEID_MRU_FONT1                    4736  // to EEID_MRU_FONT1 + 63
@@ -5640,6 +5675,7 @@ public:
 #define EEID_PROPERTY_FILE_NEW            8978
 #define EEID_PROPERTY_FILE_SAVE           8979
 #define EEID_PROPERTY_VALIDATION          8980
+#define EEID_PROPERTY_CHAR_CHECK          8981
 
 #define EEID_CUSTOMIZE_FILE               9040
 #define EEID_CUSTOMIZE_SEARCH             9041
