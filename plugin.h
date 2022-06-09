@@ -280,6 +280,14 @@
 //                      Added EEID_FILTERBAR_EXTRACT_MATCHES
 // v21.7                Added LFI_DONT_ADD_RECENT
 //                      Added COMPARE_SPLIT_VERT, COMPARE_TILE_SPLIT_MASK
+// v21.8				Added EE_INFO_EX message, INFO_EX_DATA structure, Editor_DocInfoEx inline function
+//						Added EI_GET_CONFIG, EI_SET_CONFIG, EI_SAVE_FILE, EI_INDEX_TO_DOC_REAL, EI_DOC_TO_INDEX_REAL, EI_GET_TITLE, EI_SET_TITLE
+//						Added alternative forms of Editor_DocGetModified, Editor_DocGetLines, Editor_GetLineW inline functions
+//						Added hDoc field to GET_LINE_INFO structure
+//						Added optional FLAG_REAL_DOC_INDEX parameter to EI_GET_DOC_COUNT, EI_GET_ACTIVE_INDEX
+//						Added EEID_SPLIT_VIEW_DIRECT, EEID_FILTERBAR_EXTRACT_OPTIONS
+//						Added COMPARE_SPLIT_VIEW_ONLY
+//						Added nVisibleLinesAbove and nVisibleLinesBelow fields to FILTER_INFO_EX structure
 //
 #pragma once
 
@@ -350,6 +358,8 @@
 #define S_EDIT_TEMP							_HRESULT_TYPEDEF_(0x2000000AL)
 #define S_ASYNC								_HRESULT_TYPEDEF_(0x2000000BL)  // used internally
 #define S_UNSUPPORTED_ENCODING				_HRESULT_TYPEDEF_(0x2000000CL)  // used internally
+#define S_MATCH_REGEX						_HRESULT_TYPEDEF_(0x2000000DL)  // used internally
+#define S_MATCH_NUM_RANGE					_HRESULT_TYPEDEF_(0x2000000EL)  // used internally
 
 #define DEFAULT_DPI		96
 
@@ -861,6 +871,7 @@ typedef struct _GET_LINE_INFO {
     UINT		flags;		// in
     UINT_PTR	yLine;		// in
 	BYTE		byteCrLf;	// out (valid only when flags contains FLAG_GET_CRLF_BYTE)
+	HEEDOC		hDoc;		// in (v21.8)
 } GET_LINE_INFO;
 
 typedef struct _GREP_INFOW {
@@ -1314,6 +1325,12 @@ inline UINT_PTR Editor_DocGetLines( HWND hwnd, int iDoc, int nLogical )
     return (UINT_PTR)SNDMSG( hwnd, EE_GET_LINES, (WPARAM)MAKEWPARAM( nLogical, static_cast<WPARAM>(iDoc)+1 ), (LPARAM)0 );
 }
 
+inline UINT_PTR Editor_DocGetLines( HWND hwnd, HEEDOC hDoc, int nLogical )
+{
+	_ASSERT( hwnd && IsWindow( hwnd ) );
+	return (UINT_PTR)SNDMSG( hwnd, EE_GET_LINES, (WPARAM)MAKEWPARAM( nLogical, 0 ), (LPARAM)hDoc );
+}
+
 #ifdef EE_STRICT
 inline UINT_PTR Editor_GetLines( HWND hwnd, int nLogical )
 {
@@ -1354,6 +1371,20 @@ inline UINT_PTR Editor_GetLineW( HWND hwnd, GET_LINE_INFO* pGetLineInfo, LPWSTR 
 #define Editor_GetLineW( hwnd, pGetLineInfo, szString ) \
     (UINT_PTR)SNDMSG( (hwnd), EE_GET_LINEW, (WPARAM)(GET_LINE_INFO*)(pGetLineInfo), (LPARAM)(LPWSTR)(szString) )
 #endif
+
+#define USE_HDOC	0xffff
+
+inline UINT_PTR Editor_GetLineW( HWND hwnd, HEEDOC hDoc, UINT_PTR yLine, LPWSTR pBuf, UINT_PTR cchBuf, UINT flags, BYTE byteCrLf )
+{
+	_ASSERT( hwnd && IsWindow( hwnd ) );
+	GET_LINE_INFO gli;
+	gli.cch = cchBuf;
+	gli.flags = MAKEWPARAM( flags, USE_HDOC );
+	gli.yLine = yLine;
+	gli.byteCrLf = byteCrLf;
+	gli.hDoc = hDoc;
+	return (UINT_PTR)SNDMSG( ( hwnd ), EE_GET_LINEW, (WPARAM)&gli, (LPARAM)(LPWSTR)( pBuf ) );
+}
 
 #define EE_GET_CARET_POS        (EE_FIRST+6)
   // (int)wParam = nLogical, (POINT_PTR*)lParam = pptPos
@@ -1692,6 +1723,12 @@ inline BOOL Editor_DocGetModified( HWND hwnd, int iDoc )
 {
 	_ASSERT( hwnd && IsWindow( hwnd ) );
     return (BOOL)SNDMSG( (hwnd), EE_GET_MODIFIED, MAKEWPARAM(0, static_cast<WPARAM>(iDoc)+1), (LPARAM)0 );
+}
+
+inline BOOL Editor_DocGetModified( HWND hwnd, HEEDOC hDoc )
+{
+	_ASSERT( hwnd && IsWindow( hwnd ) );
+	return (BOOL)SNDMSG( ( hwnd ), EE_GET_MODIFIED, 0, (LPARAM)hDoc );
 }
 #else
 #define Editor_DocGetModified( hwnd, iDoc ) \
@@ -3222,13 +3259,15 @@ typedef struct _FILTER_INFO_EX {
 	INT_PTR		xBegin;
 	INT_PTR		xEnd;
 	UINT		cchFilter;
+	int			nVisibleLinesAbove;
+	int			nVisibleLinesBelow;
 } FILTER_INFO_EX;
 
 #define EE_FILTER                (EE_FIRST+105)
   // (FILTER_INFO_EX*)wParam = pFilterInfo
   // returns (int)nCount
 
-inline int Editor_Filter( HWND hwnd, LPCWSTR szFilter, int iColumn, UINT64 nFlags, INT_PTR xBegin, INT_PTR xEnd )
+inline int Editor_Filter( HWND hwnd, LPCWSTR szFilter, int iColumn, UINT64 nFlags, INT_PTR xBegin, INT_PTR xEnd, int nVisibleLinesAbove = -1, int nVisibleLinesBelow = -1 )
 {
 	_ASSERT( hwnd && IsWindow( hwnd ) );
 	FILTER_INFO_EX fi = { 0 };
@@ -3238,6 +3277,8 @@ inline int Editor_Filter( HWND hwnd, LPCWSTR szFilter, int iColumn, UINT64 nFlag
 	fi.pszFilter = szFilter;
 	fi.xBegin = xBegin;
 	fi.xEnd = xEnd;
+	fi.nVisibleLinesAbove = nVisibleLinesAbove;
+	fi.nVisibleLinesBelow = nVisibleLinesBelow;
     return (int)SNDMSG( (hwnd), EE_FILTER, (WPARAM)&fi, 0 );
 }
 
@@ -3633,6 +3674,7 @@ inline HRESULT Editor_AutoFill( HWND hwnd, AUTOFILL_INFO* pInfo )
 #define COMPARE_GENERATE_REPORT			0x00200000
 #define COMPARE_OPEN_REPORT				0x00400000
 #define COMPARE_REPORT_DIFF_ONLY		0x00800000
+#define COMPARE_SPLIT_VIEW_ONLY			0x08000000
 #define COMPARE_REPORT_3_COL			0x10000000
 #define COMPARE_NO_IGNORE_COMMENT		0x80000000 // used internally
 
@@ -3651,7 +3693,7 @@ inline HRESULT Editor_AutoFill( HWND hwnd, AUTOFILL_INFO* pInfo )
 #define DEF_COMPARE_OPTIONS				(COMPARE_SPLIT_VERT | COMPARE_SYNC_SCROLL_VERT | COMPARE_SYNC_SCROLL_HORZ | COMPARE_SYNC_CARET | COMPARE_SWITCH_NO_WRAP | COMPARE_RESTORE_POS | COMPARE_QUALITY_DEF)
 #define DEF_SYNC_OPTIONS				(COMPARE_SPLIT_VERT | COMPARE_SYNC_SCROLL_VERT | COMPARE_SYNC_SCROLL_HORZ | COMPARE_SWITCH_NO_WRAP | COMPARE_RESTORE_POS | COMPARE_QUALITY_DEF)
 
-#define COMPARE_OPTION_MASK				(COMPARE_IGNORE_LEAD_SPACE | COMPARE_IGNORE_TRAIL_SPACE | COMPARE_IGNORE_EMBEDDED_SPACE | COMPARE_IGNORE_CASE | COMPARE_IGNORE_CRLF | COMPARE_IGNORE_COMMENT | COMPARE_SYNC_SCROLL_VERT | COMPARE_SYNC_SCROLL_HORZ  | COMPARE_SYNC_CARET  | COMPARE_TILE_VERT  | COMPARE_TILE_HORZ  | COMPARE_SWITCH_NO_WRAP | COMPARE_IGNORE_ENCODING | COMPARE_RESTORE_POS | COMPARE_QUIET | COMPARE_SYNC_SCROLL_ONLY | COMPARE_RESET | COMPARE_RESET_AFTER | COMPARE_GENERATE_REPORT | COMPARE_OPEN_REPORT | COMPARE_REPORT_DIFF_ONLY | COMPARE_REPORT_3_COL | COMPARE_QUALITY_MASK )
+#define COMPARE_OPTION_MASK				(COMPARE_IGNORE_LEAD_SPACE | COMPARE_IGNORE_TRAIL_SPACE | COMPARE_IGNORE_EMBEDDED_SPACE | COMPARE_IGNORE_CASE | COMPARE_IGNORE_CRLF | COMPARE_IGNORE_COMMENT | COMPARE_SYNC_SCROLL_VERT | COMPARE_SYNC_SCROLL_HORZ  | COMPARE_SYNC_CARET  | COMPARE_TILE_VERT  | COMPARE_TILE_HORZ  | COMPARE_SWITCH_NO_WRAP | COMPARE_IGNORE_ENCODING | COMPARE_RESTORE_POS | COMPARE_QUIET | COMPARE_SYNC_SCROLL_ONLY | COMPARE_RESET | COMPARE_RESET_AFTER | COMPARE_GENERATE_REPORT | COMPARE_OPEN_REPORT | COMPARE_REPORT_DIFF_ONLY | COMPARE_REPORT_3_COL | COMPARE_QUALITY_MASK | COMPARE_SPLIT_VIEW_ONLY )
 
 typedef struct _COMPARE_INFO {
 	UINT		cbSize;
@@ -3923,8 +3965,32 @@ inline HRESULT Editor_Unpivot( HWND hwnd, LPCWSTR pszSelect, LPCWSTR pszAttrLabe
 	info.nFooter = nFooter;
 	return (HRESULT)SNDMSG( hwnd, EE_UNPIVOT, (WPARAM)&info, 0 );
 }
+
+typedef struct _INFO_EX_DATA {
+	UINT cbSize;
+	UINT nCmd;
+	HEEDOC hDoc;
+	LPARAM lParam;
+} INFO_EX_DATA;
+
+#define EE_INFO_EX					(EE_FIRST+128)
+// (INFO_EX_DATA*)wParam = pInfo;
+// return lResult
+
+inline LRESULT Editor_DocInfoEx( HWND hwnd, HEEDOC hDoc, UINT nCmd, LPARAM lParam )
+{
+	_ASSERT( hwnd && IsWindow( hwnd ) );
+	INFO_EX_DATA data = { sizeof( data ) };
+	data.hDoc = hDoc;
+	data.nCmd = nCmd;
+	data.lParam = lParam;
+	return (LRESULT)SNDMSG( ( hwnd ), EE_INFO_EX, (WPARAM)&data, 0 );
+}
 //
 #define EE_LAST                 (EE_FIRST+255)
+
+#define FLAG_TAB_INDEX			0
+#define FLAG_REAL_DOC_INDEX		1
 
 #define RUN_FILE				0
 #define RUN_TEXT				1
@@ -4150,7 +4216,17 @@ typedef struct _SUM_INFO
 	double dSum;
 } SUM_INFO;
 
+// v21.5
 #define EI_GET_SUM							388
+
+// v21.8
+#define EI_GET_CONFIG						389
+#define EI_SET_CONFIG						390
+#define EI_SAVE_FILE						400
+#define EI_INDEX_TO_DOC_REAL				401
+#define EI_DOC_TO_INDEX_REAL				402
+#define EI_GET_TITLE						403
+#define EI_SET_TITLE						404
 
 // end of nCmd
 
@@ -4358,7 +4434,7 @@ typedef struct _SUM_INFO
 
 #define FLAG_FIND_BOL_EOL				(FLAG_FIND_BOL | FLAG_FIND_EOL)
 
-#define FLAG_GREP_MASK				   (0x0000'0007'0604'7f46ull | FLAG_FIND_OUTPUT | FLAG_FIND_FILTER | FLAG_FIND_NUMBER_RANGE | FLAG_FIND_COUNT_FREQUENCY | FLAG_FIND_OUTPUT_ENCODING | FLAG_FIND_MATCHED_EX | FLAG_FIND_MULTI)
+#define FLAG_GREP_MASK				   (0x0000'0007'0604'7f46ull | FLAG_FIND_OUTPUT | FLAG_FIND_FILTER | FLAG_FIND_NUMBER_RANGE | FLAG_FIND_COUNT_FREQUENCY | FLAG_FIND_OUTPUT_ENCODING | FLAG_FIND_MATCHED_EX)
 #define FLAG_FIND_EXTRACT_MASK			(FLAG_FIND_FILENAMES_ONLY | FLAG_FIND_OUTPUT_DISPLAY | FLAG_FIND_OUTPUT | FLAG_FIND_COUNT_FREQUENCY)
 #define FLAG_FIND_MASK_WITHOUT_EXTRACT (0x0000'0007'283f'83ffull | FLAG_FIND_BOL_EOL | FLAG_FIND_LOOKAROUND | FLAG_FIND_INSERT_COLUMN | FLAG_FIND_NUMBER_RANGE)
 #define FLAG_FIND_MASK					(FLAG_FIND_MASK_WITHOUT_EXTRACT | FLAG_FIND_EXTRACT_MASK)
@@ -5602,6 +5678,10 @@ public:
 
 // v21.6
 #define EEID_FILTERBAR_EXTRACT_MATCHES    4084
+
+// v21.8
+#define EEID_SPLIT_VIEW_DIRECT            4085
+#define EEID_FILTERBAR_EXTRACT_OPTIONS    4086
 
 // other commands
 #define EEID_FILE_MRU_FILE1               4609  // to EEID_FILE_MRU_FILE1 + 63
