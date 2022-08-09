@@ -288,6 +288,8 @@
 //						Added EEID_SPLIT_VIEW_DIRECT, EEID_FILTERBAR_EXTRACT_OPTIONS
 //						Added COMPARE_SPLIT_VIEW_ONLY
 //						Added nVisibleLinesAbove and nVisibleLinesBelow fields to FILTER_INFO_EX structure
+// v21.9				Added EEID_HIDE_COLUMN, EEID_UNHIDE_COLUMN, EEID_COMPARE_PREV_CHAR, EEID_COMPARE_NEXT_CHAR, EEID_ROW_HEADING_RESET, EEID_ROW_HEADING_1, EEID_ROW_HEADING_2, EEID_ROW_HEADING_3, EEID_ROW_HEADING_4, EEID_ALIGN_LEFT, EEID_ALIGN_CENTER, EEID_ALIGN_RIGHT
+//						Added EE_EXTRACT_FREQUENT message, EXTRACT_FREQUENT_INFO structure, Editor_ExtractFrequent inline function
 //
 #pragma once
 
@@ -360,6 +362,7 @@
 #define S_UNSUPPORTED_ENCODING				_HRESULT_TYPEDEF_(0x2000000CL)  // used internally
 #define S_MATCH_REGEX						_HRESULT_TYPEDEF_(0x2000000DL)  // used internally
 #define S_MATCH_NUM_RANGE					_HRESULT_TYPEDEF_(0x2000000EL)  // used internally
+#define S_SEARCH_INVALID_ENCODING			_HRESULT_TYPEDEF_(0x2000000FL)  // used internally
 
 #define DEFAULT_DPI		96
 
@@ -3986,6 +3989,38 @@ inline LRESULT Editor_DocInfoEx( HWND hwnd, HEEDOC hDoc, UINT nCmd, LPARAM lPara
 	data.lParam = lParam;
 	return (LRESULT)SNDMSG( ( hwnd ), EE_INFO_EX, (WPARAM)&data, 0 );
 }
+
+#define EE_EXTRACT_FREQUENT			(EE_FIRST+129)
+// (EXTRACT_FREQUENT_INFO*)wParam = pInfo;
+// return (HRESULT)hr
+
+#define FREQ_TYPE_LINES		0
+#define FREQ_TYPE_WORDS		1
+#define FREQ_TYPE_CELLS		2
+#define FREQ_TYPE_IPV4		3
+#define FREQ_TYPE_IPV6		4
+
+typedef struct _EXTRACT_FREQUENT_INFO {
+	UINT	cbSize;
+	UINT	nType;
+	UINT	nNumOfLines;
+	UINT	iCsvFormat;
+	UINT64	nFlags;
+	LPCWSTR pszIgnore;
+} EXTRACT_FREQUENT_INFO;
+
+inline LRESULT Editor_ExtractFrequent( HWND hwnd, UINT nType, UINT nNumOfLines, UINT iCsvFormat, UINT64 nFlags, LPCWSTR pszIgnore )
+{
+	_ASSERT( hwnd && IsWindow( hwnd ) );
+	EXTRACT_FREQUENT_INFO data = { sizeof( data ) };
+	data.nType = nType;
+	data.nNumOfLines = nNumOfLines;
+	data.iCsvFormat = iCsvFormat;
+	data.nFlags = nFlags;
+	data.pszIgnore = pszIgnore;
+	return (LRESULT)SNDMSG( ( hwnd ), EE_EXTRACT_FREQUENT, (WPARAM)&data, 0 );
+}
+
 //
 #define EE_LAST                 (EE_FIRST+255)
 
@@ -4251,6 +4286,9 @@ typedef struct _SUM_INFO
 #define VALIDATE_DONT_CLEAR_OUTPUT		0x00000010
 #define VALIDATE_QUIET_IF_NO_ERROR		0x00000020
 #define VALIDATE_ADJUST_ENLARGE_ONLY	0x00000040
+
+#define FORMAT_RIGHT_ALIGNED			1
+#define FORMAT_CENTER_ALIGNED			2
 
 #define CSV_ADJUSTED					0x00000001
 #define CSV_NL_EMBEDDED					0x00000002
@@ -5683,6 +5721,20 @@ public:
 #define EEID_SPLIT_VIEW_DIRECT            4085
 #define EEID_FILTERBAR_EXTRACT_OPTIONS    4086
 
+// v21.9
+#define EEID_HIDE_COLUMN                  4087
+#define EEID_UNHIDE_COLUMN                4088
+#define EEID_COMPARE_PREV_CHAR            4089
+#define EEID_COMPARE_NEXT_CHAR            4090
+#define EEID_ROW_HEADING_RESET			  4091
+#define EEID_ROW_HEADING_1                4092
+#define EEID_ROW_HEADING_2                4093
+#define EEID_ROW_HEADING_3                4094
+#define EEID_ROW_HEADING_4                4095
+#define EEID_ALIGN_LEFT                   23232
+#define EEID_ALIGN_CENTER                 23233
+#define EEID_ALIGN_RIGHT                  23234
+
 // other commands
 #define EEID_FILE_MRU_FILE1               4609  // to EEID_FILE_MRU_FILE1 + 63
 #define EEID_MRU_FONT1                    4736  // to EEID_MRU_FONT1 + 63
@@ -5703,7 +5755,7 @@ public:
 #define EEID_SELECT_DICTIONARY			  22016 // to EEID_SELECT_DICTIONARY + 255
 #define EEID_MARKER1                      22272 // to EEID_MARKER1 + 255
 #define EEID_SV_MODE					  22528 // to EEID_SV_MODE + 63
-#define EEID_LAYOUT1                     22592 // to EEID_LAYOUT1 + 15
+#define EEID_LAYOUT1                      22592 // to EEID_LAYOUT1 + 15
 #define EEID_CONVERT_TO_SV                22656 // to EEID_CONVERT_TO_SV + 63
 #define EEID_WORKSPACE_RECENT_FILE1       22784 // to EEID_WORKSPACE_RECENT_FILE1 + 63
 #define EEID_UNDO_RECENT				  22848 // to EEID_UNDO_RECENT + 63
