@@ -844,9 +844,6 @@ extern "C" void __stdcall OnEvents( HWND hwndView, UINT nEvent, LPARAM lParam )
 			_ETLData.m_pETLFrameMap = new CETLFrameMap;
 		}
 		_ASSERT( _ETLData.m_pETLFrameMap->size() == 0 );
-		if( Editor_GetVersion( hwndView ) < 5000 ){   // previous versions of EmEditor do not fire EVENT_CREATE_FRAME.
-			OnEvents( hwndView, EVENT_CREATE_FRAME, lParam );
-		}
 	}
 	else {
 		ASSERT_STRICT( _ETLData.m_pETLFrameMap != NULL );
