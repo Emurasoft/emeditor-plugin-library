@@ -292,6 +292,8 @@
 //						Added EE_EXTRACT_FREQUENT message, EXTRACT_FREQUENT_INFO structure, Editor_ExtractFrequent inline function
 // v22.0                Added FLAG_FIND_FUZZY
 //                      Added EEID_FILTERBAR_FUZZY, EEID_FINDBAR_FUZZY
+// v22.1                Added EEID_SORT_SEL, EEID_SORT_COLUMNS, EEID_MANAGE_COLUMNS
+//                      Added EE_CONVERT_EX, EE_REARRANGE_COLUMNS messages, CONVERT_INFO, REARRANGE_COLUMNS_INFO structures, Editor_RearrangeColumns inline function
 //
 #pragma once
 
@@ -350,6 +352,8 @@
 #define E_NOT_SUPPORTED_SEARCH				_HRESULT_TYPEDEF_(0xa0000041L)
 #define E_NOT_KEEP_OPEN						_HRESULT_TYPEDEF_(0xa0000042L)
 #define E_EMPTY_FIND						_HRESULT_TYPEDEF_(0xa0000043L)
+#define E_INCONSISTENT_COLUMNS				_HRESULT_TYPEDEF_(0xa0000044L)
+#define E_V8_CASE_INSENSITIVE				_HRESULT_TYPEDEF_(0xa0000045L)
 
 #define S_MATCHED							_HRESULT_TYPEDEF_(0x20000001L)
 #define S_MATCHED_IGNORED					_HRESULT_TYPEDEF_(0x20000002L)
@@ -2097,17 +2101,6 @@ inline void Editor_SetStatusW( HWND hwnd, LPCWSTR szStatus )
 #define EE_CONVERT              (EE_FIRST+38)
   // (UINT)wParam = nFlags
 
-#ifdef EE_STRICT
-inline BOOL Editor_Convert( HWND hwnd, UINT nFlags, LPCWSTR szChars = NULL )
-{
-	_ASSERT( hwnd && IsWindow( hwnd ) );
-    return (BOOL)SNDMSG( (hwnd), EE_CONVERT, (WPARAM)(UINT)(nFlags), (LPARAM)szChars );
-}
-#else
-#define Editor_Convert( hwnd, nFlags ) \
-    (BOOL)SNDMSG( (hwnd), EE_CONVERT, (WPARAM)(UINT)(nFlags), (LPARAM)0 )
-#endif
-
 #define EE_GET_MARGIN           (EE_FIRST+39)
   // returns (UINT_PTR)nMaxMargin
 
@@ -2828,7 +2821,7 @@ typedef struct _RUN_MACRO_INFO {
 
 #define MACRO_LANG_JSCRIPT		0
 #define MACRO_LANG_VBSCRIPT		1
-#define MACRO_LANG_CHAKRA		2
+#define MACRO_LANG_V8			2
 #define MACRO_LANG_UNKNOWN		0x000000ff
 
 #define EE_RUN_MACRO					(EE_FIRST+95)
@@ -3214,6 +3207,7 @@ inline BOOL Editor_GetColor( HWND hwnd, BOOL bFind, UINT nIndex, COLORREF* pclrT
 #define SORT_GROUP_IDENTICAL					0x00000400
 #define SORT_INSPECT_NOT_SEL_ONLY				0x00000200
 #define SORT_REMOVE_EMPTY                       0x00000200 // used by CombineLines
+#define SORT_COLUMNS							0x00000080
 #define MANAGE_DUPLICATES_COMBINE				0x80000000 // internal use only by CombineLines
 #define MANAGE_DUPLICATES_ADJACENT_ONLY			0x00020000
 #define MANAGE_DUPLICATES_IGNORE_EMPTY_LINES	0x00010000
@@ -3224,6 +3218,7 @@ inline BOOL Editor_GetColor( HWND hwnd, BOOL bFind, UINT nIndex, COLORREF* pclrT
 #define MANAGE_DUPLICATES_BOOKMARK				0x00200000
 #define MANAGE_DUPLICATES_IGNORE_CASE			NORM_IGNORECASE   // 1
 #define COMBINE_LINES_IGNORE_CASE               0x00000100
+#define SPLIT_DONT_DISCARD_EXTRA				0x00000100
 
 #define SORT_MASK				(NORM_IGNORECASE|NORM_IGNOREKANATYPE|NORM_IGNORENONSPACE|NORM_IGNORESYMBOLS|NORM_IGNOREWIDTH|SORT_STRINGSORT|SORT_DIGITSASNUMBERS)   // 0x0003100f
 #define SORT_MASK_ALL			(SORT_MASK | SORT_IGNORE_PREFIX | SORT_LENGTH_VIEW | SORT_STABLE | SORT_BINARY_COMPARISON | SORT_UNQUOTE_CELLS | SORT_INSPECT_NOT_SEL_ONLY | SORT_GROUP_IDENTICAL)
@@ -4028,6 +4023,46 @@ inline LRESULT Editor_ExtractFrequent( HWND hwnd, UINT nType, UINT nNumOfLines, 
 	return (LRESULT)SNDMSG( ( hwnd ), EE_EXTRACT_FREQUENT, (WPARAM)&data, 0 );
 }
 
+#define EE_CONVERT_EX			(EE_FIRST+130)
+
+typedef struct _CONVERT_INFO {
+	UINT	cbSize;
+	UINT	nFlags;
+	LPCWSTR pszCustomChars;
+	LPCWSTR pszSeparator;
+	LPCWSTR pszLocale;
+	UINT	nSortFlags;
+} CONVERT_INFO;
+
+inline BOOL Editor_Convert( HWND hwnd, UINT nFlags, LPCWSTR szChars = NULL, LPCWSTR pszSeparator = NULL, UINT nSortFlags = 0, LPCWSTR pszLocale = NULL )
+{
+	_ASSERT( hwnd && IsWindow( hwnd ) );
+	CONVERT_INFO data = { sizeof( data ) };
+	data.nFlags = nFlags;
+	data.pszCustomChars = szChars;
+	data.pszSeparator = pszSeparator;
+	data.pszLocale = pszLocale;
+	data.nSortFlags = nSortFlags;
+	return SUCCEEDED( (HRESULT)SNDMSG( hwnd, EE_CONVERT_EX, (WPARAM)&data, 0 ) );
+}
+
+#define EE_REARRANGE_COLUMNS	(EE_FIRST+131)
+
+typedef struct _REARRANGE_COLUMNS_INFO {
+	UINT	cbSize;
+	UINT	nColumnArraySize;
+	const INT* piColumn;
+} REARRANGE_COLUMNS_INFO;
+
+inline HRESULT Editor_RearrangeColumns( HWND hwnd, UINT nColumnArraySize, const INT* piColumn )
+{
+	_ASSERT( hwnd && IsWindow( hwnd ) );
+	REARRANGE_COLUMNS_INFO data = { sizeof( data ) };
+	data.nColumnArraySize = nColumnArraySize;
+	data.piColumn = piColumn;
+	return (HRESULT)SNDMSG( hwnd, EE_REARRANGE_COLUMNS, (WPARAM)&data, 0 );
+}
+
 //
 #define EE_LAST                 (EE_FIRST+255)
 
@@ -4340,6 +4375,7 @@ typedef struct _SUM_INFO
 #define SEL_TYPE_CELL				4
 #define MAX_SEL_TYPE				5
 #define SEL_TYPE_HTML				5
+#define SEL_TYPE_TSV				6
 #define SEL_TYPE_MASK               0x000f
 #define SEL_TYPE_KEYBOARD           0x0010
 #define SEL_TYPE_SELECTED           0x0020
@@ -4382,8 +4418,10 @@ typedef struct _SUM_INFO
 #define FLAG_DECODE_BASE64_UTF8				0x0001000a
 #define FLAG_ENCODE_BASE64					0x0001000b
 #define FLAG_ENCODE_BASE64_UTF8				0x0001000c
+#define FLAG_SORT_SPLIT_STRINGS				0x0001000d
 
 #define FLAG_CONVERT_MASK                   0x0001000f
+
 #define FLAG_JAPANESE_YEN			0x0010
 #define FLAG_KOREAN_WON				0x0020
 #define FLAG_RIGHT_SINGLE_QUOTATION 0x0040  // v19.1
@@ -5749,6 +5787,11 @@ public:
 // v22.0
 #define EEID_FILTERBAR_FUZZY              23235
 #define EEID_FINDBAR_FUZZY                23236
+
+// v22.1
+#define EEID_SORT_SEL                     23237
+#define EEID_SORT_COLUMNS                 23238
+#define EEID_MANAGE_COLUMNS               23239
 
 // other commands
 #define EEID_FILE_MRU_FILE1               4609  // to EEID_FILE_MRU_FILE1 + 63
