@@ -856,8 +856,7 @@ extern "C" void __stdcall OnEvents( HWND hwndView, UINT nEvent, LPARAM lParam )
 					CETLLock lock;
 					_ASSERTE( _ETLData.m_pETLFrameMap->find( hwndFrame ) == _ETLData.m_pETLFrameMap->end() );
 					_ETLData.m_pETLFrameMap->insert( std::pair<HWND, CETLFrameX*>( hwndFrame, pFrame ) );
-					if( _ETLData.m_pETLFrameMap->size() == 1 ){
-						_ASSERT( _ETLData.m_hinstLoc == NULL );
+					if( _ETLData.m_hinstLoc == NULL ) {
 						_ETLData.m_hinstLoc = pFrame->GetEmedLocInstance();
 					}
 					pFrame->OnEvents( hwndView, nEvent, lParam );
