@@ -354,6 +354,7 @@
 #define E_EMPTY_FIND						_HRESULT_TYPEDEF_(0xa0000043L)
 #define E_INCONSISTENT_COLUMNS				_HRESULT_TYPEDEF_(0xa0000044L)
 #define E_V8_CASE_INSENSITIVE				_HRESULT_TYPEDEF_(0xa0000045L)
+#define E_V8_NESTING_ERROR					_HRESULT_TYPEDEF_(0xa0000046L)
 
 #define S_MATCHED							_HRESULT_TYPEDEF_(0x20000001L)
 #define S_MATCHED_IGNORED					_HRESULT_TYPEDEF_(0x20000002L)
@@ -370,6 +371,8 @@
 #define S_MATCH_REGEX						_HRESULT_TYPEDEF_(0x2000000DL)  // used internally
 #define S_MATCH_NUM_RANGE					_HRESULT_TYPEDEF_(0x2000000EL)  // used internally
 #define S_SEARCH_INVALID_ENCODING			_HRESULT_TYPEDEF_(0x2000000FL)  // used internally
+#define S_CONTINUE							_HRESULT_TYPEDEF_(0x20000010L)  // used internally
+#define S_MIXED_PATH						_HRESULT_TYPEDEF_(0x20000011L)  // used internally
 
 #define DEFAULT_DPI		96
 
@@ -2070,6 +2073,13 @@ inline BOOL Editor_LoadConfigW( HWND hwnd, LPCWSTR szConfigName )
     (BOOL)SNDMSG( (hwnd), EE_LOAD_CONFIGW, (WPARAM)0, (LPARAM)(LPCWSTR)(szConfigName) )
 #endif
 
+#define STATUS_FLAG_NONE			0
+#define STATUS_FLAG_MESSAGE			1
+#define STATUS_FLAG_WARNING			2
+#define STATUS_FLAG_ERROR			3
+#define STATUS_FLAG_COLOR_MASK		3
+#define STATUS_FLAG_ERASE_SHORTLY	0x00000010
+
 #define EE_SET_STATUSA          (EE_FIRST+37)
   // (LPCSTR)lParam = szStatus
 
@@ -2088,14 +2098,14 @@ inline void Editor_SetStatusA( HWND hwnd, LPCSTR szStatus )
   // (LPCWSTR)lParam = szStatus
 
 #ifdef EE_STRICT
-inline void Editor_SetStatusW( HWND hwnd, LPCWSTR szStatus )
+inline void Editor_SetStatusW( HWND hwnd, LPCWSTR szStatus, UINT nFlags = 0 )
 {
 	_ASSERT( hwnd && IsWindow( hwnd ) );
-    SNDMSG( (hwnd), EE_SET_STATUSW, (WPARAM)0, (LPARAM)(LPCWSTR)(szStatus) );
+    SNDMSG( (hwnd), EE_SET_STATUSW, (WPARAM)nFlags, (LPARAM)(LPCWSTR)(szStatus) );
 }
 #else
 #define Editor_SetStatusW( hwnd, szStatus ) \
-    (void)SNDMSG( (hwnd), EE_SET_STATUSW, (WPARAM)0, (LPARAM)(LPCWSTR)(szStatus) )
+    (void)SNDMSG( (hwnd), EE_SET_STATUSW, (WPARAM)nFlags, (LPARAM)(LPCWSTR)(szStatus) )
 #endif
 
 #define EE_CONVERT              (EE_FIRST+38)
@@ -2823,6 +2833,7 @@ typedef struct _RUN_MACRO_INFO {
 #define MACRO_LANG_VBSCRIPT		1
 #define MACRO_LANG_V8			2
 #define MACRO_LANG_UNKNOWN		0x000000ff
+#define MACRO_SYNC_ONLY			0x00000200
 
 #define EE_RUN_MACRO					(EE_FIRST+95)
   // (RUN_MACRO_INFO*)lParam = pRunMacroInfo
@@ -4325,9 +4336,10 @@ typedef struct _SUM_INFO
 #define VALIDATE_QUIET					0x00000002
 #define VALIDATE_ADJUST_VISIBLE_ONLY	0x00000004
 #define VALIDATE_DETECT_NL				0x00000008
-#define VALIDATE_DONT_CLEAR_OUTPUT		0x00000010
 #define VALIDATE_QUIET_IF_NO_ERROR		0x00000020
 #define VALIDATE_ADJUST_ENLARGE_ONLY	0x00000040
+#define VALIDATE_DETECT_CSV				0x00000080
+#define VALIDATE_ASYNC					0x00000100
 
 #define FORMAT_RIGHT_ALIGNED			1
 #define FORMAT_CENTER_ALIGNED			2
@@ -4338,7 +4350,12 @@ typedef struct _SUM_INFO
 #define CSV_INVALID_QUOTES				0x00000008
 #define CSV_INCONSISTENT_COLUMNS		0x00000010
 #define CSV_NOT_CSV						0x00000020
-#define CSV_RETRY_SINGLE_THREAD			0x00000040  // internal use
+#define CSV_ASYNC_SUCCESS				0x00000040
+#define CSV_ASYNC_RUNNING				0x00000080
+#define CSV_RETRY_SINGLE_THREAD			0x08000000  // internal use
+#define CSV_RETRY_MEMORY_LOW			0x10000000  // internal use
+#define CSV_RETRY_CHAR_NL				0x20000000  // internal use
+#define CSV_ASYNC_NOT_QUIET				0x40000000  // internal use
 
 #define DPI_OPTIONS_UNAWARE						0
 #define DPI_OPTIONS_SYSTEM						1

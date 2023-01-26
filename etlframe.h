@@ -771,7 +771,7 @@ BOOL APIENTRY DllMain( HINSTANCE hModule, DWORD  ul_reason_for_call, LPVOID /*lp
 {
     if( ul_reason_for_call == DLL_PROCESS_ATTACH ){
 #ifdef _DEBUG
-		_CrtSetDbgFlag( _CRTDBG_ALLOC_MEM_DF | _CRTDBG_CHECK_EVERY_1024_DF /* _CRTDBG_CHECK_ALWAYS_DF */ );
+		_CrtSetDbgFlag( _CRTDBG_ALLOC_MEM_DF | _CRTDBG_CHECK_EVERY_1024_DF | _CRTDBG_LEAK_CHECK_DF );
 #endif
 		_ASSERTE( _ETLData.m_hInstance == NULL );
 		_ETLData.m_hInstance = hModule;
