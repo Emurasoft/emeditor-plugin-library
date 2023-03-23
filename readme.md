@@ -1,5 +1,8 @@
-Copyright © 2018 Emurasoft, Inc.<br>
+Copyright Â© 2023 Emurasoft, Inc.
+
 Licensed under the MIT license. See LICENSE for details.
+
+(April 2023: Repository was renamed to `emeditor-plugin-library`)
 
 This repository contains three files that enable a C++ plug-in to communicate with EmEditor:
 
