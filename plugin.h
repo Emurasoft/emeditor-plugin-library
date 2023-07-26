@@ -295,6 +295,7 @@
 // v22.1                Added EEID_SORT_SEL, EEID_SORT_COLUMNS, EEID_MANAGE_COLUMNS
 //                      Added EE_CONVERT_EX, EE_REARRANGE_COLUMNS messages, CONVERT_INFO, REARRANGE_COLUMNS_INFO structures, Editor_RearrangeColumns inline function
 // v22.3				Added SORT_DIGIT_GROUPING
+// v22.5                Added SMART_COLOR_INDICATOR_BOOKMARK_HOVERED
 //
 #pragma once
 
@@ -707,8 +708,9 @@
 #define SMART_COLOR_EVEN_LINES			100 // v20.8
 #define SMART_COLOR_INVALID_CHAR		101 // v21.5
 #define SMART_COLOR_FUZZY_MATCH			102 // v22.0
+#define SMART_COLOR_INDICATOR_BOOKMARK_HOVERED	103
 
-#define MAX_SMART_COLOR					103
+#define MAX_SMART_COLOR					104
 
 #define SMART_COLOR_INVALID				MAX_SMART_COLOR
 
@@ -4079,6 +4081,8 @@ inline HRESULT Editor_RearrangeColumns( HWND hwnd, UINT nColumnArraySize, const 
 	return (HRESULT)SNDMSG( hwnd, EE_REARRANGE_COLUMNS, (WPARAM)&data, 0 );
 }
 
+#define EE_GET_SYMBOLS	(EE_FIRST+132)
+
 //
 #define EE_LAST                 (EE_FIRST+255)
 
@@ -4739,8 +4743,8 @@ typedef struct _SUM_INFO
 #define LSP_TYPE_PERL				0x03
 #define LSP_TYPE_CPP				0x04
 #define LSP_TYPE_PYTHON				0x05
-#define LSP_TYPE_JAVA				0x06
-#define MAX_LSP_TYPE				0x06
+#define LSP_TYPE_JSON				0x06
+#define MAX_LSP_TYPE				0x07
 #define LSP_TYPE_MASK				0x1f
 
 // Character Check

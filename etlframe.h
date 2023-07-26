@@ -204,7 +204,7 @@ public:
 		HINSTANCE hinst = EEGetLocaleInstanceHandle();
 		LRESULT lResult = 0;
 		if( hinst ){
-			lResult = LoadStringA( hinst, nID, sz, _countof( sz ) ) + 1;
+			lResult = LRESULT{ LoadStringA( hinst, nID, sz, _countof( sz ) ) } + 1;
 			//_ASSERTE( lResult > 1 );
 			if( pBuf ){
 				StringCchCopyA( pBuf, cchBuf, sz );
@@ -219,7 +219,7 @@ public:
 		HINSTANCE hinst = EEGetLocaleInstanceHandle();
 		LRESULT lResult = 0;
 		if( hinst ){
-			lResult = LoadStringW( hinst, nID, sz, _countof( sz ) ) + 1;   // LoadStringW does not work on Windows 9x, but that is OK.
+			lResult = LRESULT{ LoadStringW( hinst, nID, sz, _countof( sz ) ) } + 1;   // LoadStringW does not work on Windows 9x, but that is OK.
 			//_ASSERTE( lResult > 1 );  
 			if( pBuf ){
 				StringCchCopyW( pBuf, cchBuf, sz );
