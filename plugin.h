@@ -296,6 +296,10 @@
 //                      Added EE_CONVERT_EX, EE_REARRANGE_COLUMNS messages, CONVERT_INFO, REARRANGE_COLUMNS_INFO structures, Editor_RearrangeColumns inline function
 // v22.3				Added SORT_DIGIT_GROUPING
 // v22.5                Added SMART_COLOR_INDICATOR_BOOKMARK_HOVERED
+// v23.0                Added EEID_GO_TO_DEFINITION, EEID_VIEW_WEB, EEID_FORMAT_DOCUMENT, EEID_FORMAT_SELECTION, EEID_CUSTOMIZE_WEB
+//                      Added EI_SET_WEB, EI_OPEN_WEB
+//                      Added SPECIAL_SYNTAX_MARKDOWN
+//						LFI_USE_TEMP_FILE was renamed to LFI_USE_DISK_MODE, LFI_DONT_USE_TEMP_FILE was renamed to LFI_DONT_USE_DISK_MODE
 //
 #pragma once
 
@@ -357,6 +361,8 @@
 #define E_INCONSISTENT_COLUMNS				_HRESULT_TYPEDEF_(0xa0000044L)
 #define E_V8_CASE_INSENSITIVE				_HRESULT_TYPEDEF_(0xa0000045L)
 #define E_V8_NESTING_ERROR					_HRESULT_TYPEDEF_(0xa0000046L)
+#define E_UNFIT_STRING_FOUND				_HRESULT_TYPEDEF_(0xa0000047L)
+#define E_EMBEDDED_NEWLINES					_HRESULT_TYPEDEF_(0xa0000048L)
 
 #define S_MATCHED							_HRESULT_TYPEDEF_(0x20000001L)
 #define S_MATCHED_IGNORED					_HRESULT_TYPEDEF_(0x20000002L)
@@ -382,6 +388,7 @@
 #define CLR_NONE                0xFFFFFFFFL
 #endif
 
+#define REG_VERSION_23_0		31
 #define REG_VERSION_22_3		30
 #define REG_VERSION_21_5		29
 #define REG_VERSION_20_3		28
@@ -402,7 +409,7 @@
 #define REG_VERSION_13          13
 #define REG_VERSION_10          10
 #define REG_VERSION_3           3  // v3
-#define REG_VERSION             REG_VERSION_22_3
+#define REG_VERSION             REG_VERSION_23_0
 
 #define UPDATE_TREE_NONE			0
 #define UPDATE_OUTLINE				1
@@ -447,7 +454,8 @@
 #define SPECIAL_SYNTAX_NONE 0
 #define SPECIAL_SYNTAX_HTML 1
 #define SPECIAL_SYNTAX_HTML_EMBEDDED 2
-#define MAX_SPECIAL_SYNTAX	3
+#define SPECIAL_SYNTAX_MARKDOWN		3
+#define MAX_SPECIAL_SYNTAX	4
 
 #define MAX_FIND_HISTORY 64
 #define DEF_FIND_HISTORY 32
@@ -551,6 +559,10 @@
 #define CODEPAGE_ANSI_LAST          64999
 
 #define CODEPAGE_932                932     // Japanese Shift-JIS
+#define CODEPAGE_936				936     // Simplified Chinese GB2312
+#define CODEPAGE_949				949     // Korean ks_c_5601-1987
+#define CODEPAGE_950				950     // Traditional Chinese Big5
+#define CODEPAGE_50220				50220   // Japanese JIS
 #define CODEPAGE_JIS                65616   // obsolete, Japanese JIS, use 50220 instead
 #define CODEPAGE_EUC                65617   // obsolete, Japanese EUC, use 51932 instead.
 
@@ -868,8 +880,8 @@ typedef struct _LOAD_FILE_INFO_EX_V2 {
 
 #define LFI_ALLOW_NEW_WINDOW		1
 #define LFI_ALLOW_ASYNC_OPEN		2
-#define LFI_USE_TEMP_FILE			4
-#define LFI_DONT_USE_TEMP_FILE		8
+#define LFI_USE_DISK_MODE			4
+#define LFI_DONT_USE_DISK_MODE		8
 #define LFI_DONT_ADD_RECENT			0x0010
 
 constexpr BYTE FLAG_CR_AND_LF = 0;
@@ -2847,7 +2859,7 @@ typedef struct _RUN_MACRO_INFO {
   //         S_EDIT_TEMP (macro error but could not open temporary file when trying to edit)
   //         E_FAIL      (error)
 
-inline HRESULT Editor_RunMacro( HWND hwnd, UINT nFlags, UINT nDefMacroLang, LPCWSTR pszMacroFile, LPCWSTR pszText, POINT_PTR* pptOrgPos, POINT_PTR* pptCodePos, POINT_PTR* pptErrorPos, HGLOBAL* phstrResult )
+inline HRESULT Editor_RunMacro( HWND hwnd, UINT nFlags, UINT nDefMacroLang, LPCWSTR pszMacroFile, LPCWSTR pszText, const POINT_PTR* pptOrgPos, POINT_PTR* pptCodePos, POINT_PTR* pptErrorPos, HGLOBAL* phstrResult )
 {
 	_ASSERT( hwnd && IsWindow( hwnd ) );
 	RUN_MACRO_INFO rmi = { 0 };
@@ -2910,7 +2922,7 @@ typedef struct _TEMP_INFO {
 #define INT_MIN     (-2147483647 - 1)
 #endif
 
-inline UINT Editor_EditTemp( HWND hwnd, LPCWSTR pszTempText, LPCWSTR pszTitle, LPCWSTR pszIconPath, LPCWSTR pszConfig, UINT nEncoding, POINT_PTR* pptInitialCaret = NULL, UINT nFlags = 0 )
+inline UINT Editor_EditTemp( HWND hwnd, LPCWSTR pszTempText, LPCWSTR pszTitle, LPCWSTR pszIconPath, LPCWSTR pszConfig, UINT nEncoding, const POINT_PTR* pptInitialCaret = NULL, UINT nFlags = 0 )
 {
 	_ASSERT( hwnd && IsWindow( hwnd ) );
 	TEMP_INFO ti = { 0 };
@@ -2930,7 +2942,7 @@ inline UINT Editor_EditTemp( HWND hwnd, LPCWSTR pszTempText, LPCWSTR pszTitle, L
 	return (UINT)SNDMSG( hwnd, EE_EDIT_TEMP, (WPARAM)0, (LPARAM)&ti );
 }
 
-inline UINT Editor_ActivateTemp( HWND hwnd, UINT nEditID, POINT_PTR* pptInitialCaret = NULL )
+inline UINT Editor_ActivateTemp( HWND hwnd, UINT nEditID, const POINT_PTR* pptInitialCaret = NULL )
 {
 	_ASSERT( hwnd && IsWindow( hwnd ) );
 	TEMP_INFO ti = { 0 };
@@ -3276,7 +3288,7 @@ typedef struct _FILTER_INFO_EX {
 	UINT		cbSize;
 	UINT64      flags;
 	int			iColumn;
-	LPCWSTR		pszFilter;
+	LPWSTR		pszFilter;
 	INT_PTR		xBegin;
 	INT_PTR		xEnd;
 	UINT		cchFilter;
@@ -3295,7 +3307,7 @@ inline int Editor_Filter( HWND hwnd, LPCWSTR szFilter, int iColumn, UINT64 nFlag
 	fi.cbSize = sizeof( fi );
 	fi.flags = nFlags;
 	fi.iColumn = iColumn;
-	fi.pszFilter = szFilter;
+	fi.pszFilter = (LPWSTR)szFilter;
 	fi.xBegin = xBegin;
 	fi.xEnd = xEnd;
 	fi.nVisibleLinesAbove = nVisibleLinesAbove;
@@ -3482,7 +3494,7 @@ typedef struct _MANAGE_DUPLICATES_INFO_V2 {
 
 #define MANAGE_DUPLICATES_INFO MANAGE_DUPLICATES_INFO_V2
 
-inline HRESULT Editor_ManageDuplicates( HWND hwnd, UINT nFlags, int nNumOfColumns, int* anColumns, INT_PTR* pnFound, int nNumOfColumnsToCombine = 0, int* anColumnsToCombine = NULL, LPCWSTR pszInsert = NULL, UINT nCombineFlags = 0, LPWSTR pszLocale = NULL )
+inline HRESULT Editor_ManageDuplicates( HWND hwnd, UINT nFlags, int nNumOfColumns, int* anColumns, INT_PTR* pnFound, int nNumOfColumnsToCombine = 0, int* anColumnsToCombine = NULL, LPCWSTR pszInsert = NULL, UINT nCombineFlags = 0, LPCWSTR pszLocale = NULL )
 {
 	MANAGE_DUPLICATES_INFO mdi = { 0 };
 	mdi.nVer = VER_MANAGE_DUPLICATES_INFO;
@@ -3549,6 +3561,11 @@ inline HRESULT Editor_SetCell( HWND hwnd, GET_CELL_INFO* pCellInfo, LPCWSTR szSt
 }
 
 #define SET_COLUMN_INSERT			0x0010
+#define SET_COLUMN_IGNORE_INCONSISTENT	0x0020
+#define SET_COLUMN_ADJUST_CELL_END	0x0040
+#define SET_COLUMN_CHECK_FILTER		0x0080
+#define SET_COLUMN_SET_SEL_ARRAY	0x0100
+#define SET_COLUMN_NO_SET_STRING	0x0200
 
 typedef struct _COLUMN_STRUCT_V1 {
 	UINT        cbSize;
@@ -3844,7 +3861,10 @@ inline HRESULT Editor_EditColumn( HWND hwnd, UINT nFlags, int iColumnFrom1, int 
 
 #define CSV_HALF_WIDTH			1
 #define CSV_DISCARD_UNDO		2
-#define MAX_CSV_FLAGS			(CSV_HALF_WIDTH | CSV_DISCARD_UNDO)
+#define CSV_TRUNCATE_UNFIT		4
+#define CSV_PROMPT_INVALID		8
+#define DEF_CSV_FLAGS			CSV_PROMPT_INVALID
+#define MAX_CSV_FLAGS			(CSV_HALF_WIDTH | CSV_DISCARD_UNDO | CSV_TRUNCATE_UNFIT | CSV_PROMPT_INVALID)
 
 typedef struct _CONVERT_CSV_INFO {
 	UINT cbSize;
@@ -4113,6 +4133,10 @@ inline HRESULT Editor_RearrangeColumns( HWND hwnd, UINT nColumnArraySize, const 
 #define FLAG_CLOSE_ON_EXIT			0x0400
 #define FLAG_ADD_EOF				0x0800
 
+#define FLAG_OPEN_WEB				0x0001
+#define FLAG_CLOSE_WEB				0x0002
+#define FLAG_FOCUS_WEB				0x0004
+
 typedef struct _STRING_BUF {
 	LPWSTR pBuf;
 	UINT cchBuf;
@@ -4325,6 +4349,11 @@ typedef struct _SUM_INFO
 #define EI_GET_TITLE						403
 #define EI_SET_TITLE						404
 
+// v23.0
+#define EI_SET_WEB							405
+#define EI_OPEN_WEB							406
+
+
 // end of nCmd
 
 #define SYNC_SETTINGS_FALSE			0
@@ -4430,27 +4459,6 @@ typedef struct _SUM_INFO
 #define FLAG_TRIM_RIGHT				0x000c
 #define FLAG_TRIM_LEFT				0x000d
 
-#define FLAG_ENCODE_HTML_CHAR_REF           0x00010000
-#define FLAG_ENCODE_HTML_CHAR_ENTITY_REF    0x00010001
-#define FLAG_DECODE_HTML_CHAR_REF           0x00010002
-#define FLAG_DECODE_UCN                     0x00010003
-#define FLAG_ENCODE_UCN				        0x00010004
-#define FLAG_DECODE_PERCENT                 0x00010005
-#define FLAG_DECODE_PERCENT_UTF8            0x00010006
-#define FLAG_ENCODE_PERCENT                 0x00010007
-#define FLAG_ENCODE_PERCENT_UTF8            0x00010008
-
-#define FLAG_DECODE_BASE64					0x00010009
-#define FLAG_DECODE_BASE64_UTF8				0x0001000a
-#define FLAG_ENCODE_BASE64					0x0001000b
-#define FLAG_ENCODE_BASE64_UTF8				0x0001000c
-#define FLAG_SORT_SPLIT_STRINGS				0x0001000d
-
-#define FLAG_DELETE_CSV_COLUMN				0x0001000e					
-#define FLAG_CLEAR_CSV_COLUMN				0x0001000f
-
-#define FLAG_CONVERT_MASK                   0x0001000f
-
 #define FLAG_JAPANESE_YEN			0x0010
 #define FLAG_KOREAN_WON				0x0020
 #define FLAG_RIGHT_SINGLE_QUOTATION 0x0040  // v19.1
@@ -4463,6 +4471,26 @@ typedef struct _SUM_INFO
 #define FLAG_CONVERT_KANA_MARK      0x4000
 #define FLAG_CONVERT_CUSTOM         0x8000  // v19.1
 #define FLAG_CONVERT_ALL_TYPES      (FLAG_CONVERT_KATA | FLAG_CONVERT_ALPHANUMERIC | FLAG_CONVERT_MARK | FLAG_CONVERT_SPACE | FLAG_CONVERT_KANA_MARK)
+
+#define FLAG_ENCODE_HTML_CHAR_REF           0x00010000
+#define FLAG_ENCODE_HTML_CHAR_ENTITY_REF    0x00010001
+#define FLAG_DECODE_HTML_CHAR_REF           0x00010002
+#define FLAG_DECODE_UCN                     0x00010003
+#define FLAG_ENCODE_UCN				        0x00010004
+#define FLAG_DECODE_PERCENT                 0x00010005
+#define FLAG_DECODE_PERCENT_UTF8            0x00010006
+#define FLAG_ENCODE_PERCENT                 0x00010007
+#define FLAG_ENCODE_PERCENT_UTF8            0x00010008
+#define FLAG_DECODE_BASE64					0x00010009
+#define FLAG_DECODE_BASE64_UTF8				0x0001000a
+#define FLAG_ENCODE_BASE64					0x0001000b
+#define FLAG_ENCODE_BASE64_UTF8				0x0001000c
+#define FLAG_SORT_SPLIT_STRINGS				0x0001000d
+#define FLAG_DELETE_CSV_COLUMN				0x0001000e					
+#define FLAG_CLEAR_CSV_COLUMN				0x0001000f
+#define FLAG_DECODE_MIME_BASE64				0x00020000
+
+#define FLAG_CONVERT_MASK                   0x000f000f
 
 // EE_FIND, EE_REPLACE, EE_FIND_IN_FILES, EE_REPLACE_IN_FILES, EE_MATCH_REGEX, EE_FIND_REGEX
 #define FLAG_FIND_NEXT					0x0000'0000'0000'0001ull  // EE_FIND only
@@ -4735,6 +4763,7 @@ typedef struct _SUM_INFO
 #define DEF_VALIDATOR_XML			(VALIDATOR_ENABLED | VALIDATOR_SHOW_ON_ERRORS | VALIDATOR_TYPE_XML)
 #define DEF_VALIDATOR_LSP			(VALIDATOR_SHOW_ON_ERRORS | VALIDATOR_TYPE_LSP)
 
+#define LSP_SHOW_TOOLTIP			0x40
 #define LSP_ENABLED					0x80
 
 #define LSP_TYPE_HTML				0x00
@@ -4808,7 +4837,7 @@ public:
 	bool		m_bEnsureFinalNL;   // v21.5
 	BYTE		m_byteDummy12;
 	BYTE		m_byteDummy13;
-    BYTE        m_nSpecialSyntax;   // v3.16: Special Syntax  (SPECIAL_SYNTAX_NONE (0) - MAX_SPECIAL_SYNTAX-1 (2))
+    BYTE        m_nSpecialSyntax;   // v3.16: Special Syntax  (SPECIAL_SYNTAX_NONE (0) - MAX_SPECIAL_SYNTAX-1 (3))
 	BYTE		m_byteDummy14;
 	BYTE		m_byteDummy15;
 	BYTE		m_byteDummy16;
@@ -5838,6 +5867,15 @@ public:
 #define EEID_SORT_COLUMNS                 23238
 #define EEID_MANAGE_COLUMNS               23239
 
+// v22.2
+#define EEID_TAG_LINKS                    23241
+
+// v23.0
+#define EEID_GO_TO_DEFINITION             23242
+#define EEID_VIEW_WEB                     23243
+#define EEID_FORMAT_DOCUMENT              23244
+#define EEID_FORMAT_SELECTION             23245
+
 // other commands
 #define EEID_FILE_MRU_FILE1               4609  // to EEID_FILE_MRU_FILE1 + 63
 #define EEID_MRU_FONT1                    4736  // to EEID_MRU_FONT1 + 63
@@ -5951,6 +5989,7 @@ public:
 #define EEID_CUSTOMIZE_CLIPBOARD          9066
 #define EEID_CUSTOMIZE_LAYOUTS            9067
 #define EEID_CUSTOMIZE_CSV_OPTIONS        9068
+#define EEID_CUSTOMIZE_WEB                9069
 
 // for Projects plug-in
 #ifdef USE_PROJECTS_PLUGIN

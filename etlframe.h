@@ -19,7 +19,7 @@
 #endif
 #include <shlwapi.h>
 #include <strsafe.h>
-#include <map>
+#include <unordered_map>
 #pragma warning( pop )
 
 #if _MSC_VER < 0x0700
@@ -62,7 +62,7 @@ LPCWSTR const szDefaultLang = L"DefaultLang";
 class ETL_FRAME_CLASS_NAME;
 template <typename T> class CETLFrame;
 typedef CETLFrame<ETL_FRAME_CLASS_NAME> CETLFrameX;
-typedef std::map<HWND, CETLFrameX*> CETLFrameMap;
+typedef std::unordered_map<HWND, CETLFrameX*> CETLFrameMap;
 CETLFrameX* _ETLCreateFrame();
 void _ETLDeleteFrame( CETLFrameX* pFrame );
 BOOL IsFileExist( LPCWSTR pszPathName );
