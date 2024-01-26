@@ -300,6 +300,7 @@
 //                      Added EI_SET_WEB, EI_OPEN_WEB
 //                      Added SPECIAL_SYNTAX_MARKDOWN
 //						LFI_USE_TEMP_FILE was renamed to LFI_USE_DISK_MODE, LFI_DONT_USE_TEMP_FILE was renamed to LFI_DONT_USE_DISK_MODE
+// v23.1                Added EEID_CUSTOMIZE_HELP
 //
 #pragma once
 
@@ -363,6 +364,7 @@
 #define E_V8_NESTING_ERROR					_HRESULT_TYPEDEF_(0xa0000046L)
 #define E_UNFIT_STRING_FOUND				_HRESULT_TYPEDEF_(0xa0000047L)
 #define E_EMBEDDED_NEWLINES					_HRESULT_TYPEDEF_(0xa0000048L)
+#define E_DIFF_THREAD						_HRESULT_TYPEDEF_(0xa0000049L)  // used internally
 
 #define S_MATCHED							_HRESULT_TYPEDEF_(0x20000001L)
 #define S_MATCHED_IGNORED					_HRESULT_TYPEDEF_(0x20000002L)
@@ -1101,8 +1103,6 @@ typedef struct tagSIZE_PTR
     LONG_PTR  cy;
 } SIZE_PTR, *PSIZE_PTR;
 
-//#define LONG_PTR_MIN		LLONG_MIN
-//#define LONG_PTR_MAX		LLONG_MAX
 #else
 typedef struct tagPOINT_PTR
 {
@@ -1125,39 +1125,6 @@ typedef struct tagPOINT64
     INT64  x;
     INT64  y;
 } POINT64, *PPOINT64;
-
-
-class CPointPtr : public tagPOINT_PTR
-{
-public:
-// Constructors
-	CPointPtr();
-	CPointPtr(int initX, int initY);
-	CPointPtr(POINT initPt);
-	CPointPtr(SIZE initSize);
-
-// Operations
-	void Offset(int xOffset, int yOffset);
-	void Offset(POINT point);
-	void Offset(SIZE size);
-	BOOL operator ==(POINT point) const;
-	BOOL operator !=(POINT point) const;
-	void operator +=(SIZE size);
-	void operator -=(SIZE size);
-	void operator +=(POINT point);
-	void operator -=(POINT point);
-	void SetPoint(int X, int Y);
-
-// Operators returning CPointPtr values
-	CPointPtr operator +(SIZE size) const;
-	CPointPtr operator -(SIZE size) const;
-	CPointPtr operator -() const;
-	CPointPtr operator +(POINT point) const;
-
-// Operators returning CSize values
-//	CSize operator -(POINT point) const;
-
-};
 
 
 #define HISTORY_INSERT_CHAR	  		0x00000000L
@@ -1943,6 +1910,7 @@ inline void Editor_EmptyUndoBuffer( HWND hwnd )
 #define OVERWRITE_MASK			3
 #define KEEP_SOURCE_RETURN_TYPE	0x00000000
 #define KEEP_DEST_RETURN_TYPE	0x00000010
+#define INSERT_STRING_BSTR		0x00000020
 
 #define EE_INSERT_STRINGA       (EE_FIRST+32)
   // (int)wParam = nInsertType
@@ -3562,10 +3530,7 @@ inline HRESULT Editor_SetCell( HWND hwnd, GET_CELL_INFO* pCellInfo, LPCWSTR szSt
 
 #define SET_COLUMN_INSERT			0x0010
 #define SET_COLUMN_IGNORE_INCONSISTENT	0x0020
-#define SET_COLUMN_ADJUST_CELL_END	0x0040
 #define SET_COLUMN_CHECK_FILTER		0x0080
-#define SET_COLUMN_SET_SEL_ARRAY	0x0100
-#define SET_COLUMN_NO_SET_STRING	0x0200
 
 typedef struct _COLUMN_STRUCT_V1 {
 	UINT        cbSize;
@@ -4763,6 +4728,7 @@ typedef struct _SUM_INFO
 #define DEF_VALIDATOR_XML			(VALIDATOR_ENABLED | VALIDATOR_SHOW_ON_ERRORS | VALIDATOR_TYPE_XML)
 #define DEF_VALIDATOR_LSP			(VALIDATOR_SHOW_ON_ERRORS | VALIDATOR_TYPE_LSP)
 
+#define LSP_SHOW_COMPLETION_LIST	0x20
 #define LSP_SHOW_TOOLTIP			0x40
 #define LSP_ENABLED					0x80
 
@@ -5990,6 +5956,7 @@ public:
 #define EEID_CUSTOMIZE_LAYOUTS            9067
 #define EEID_CUSTOMIZE_CSV_OPTIONS        9068
 #define EEID_CUSTOMIZE_WEB                9069
+#define EEID_CUSTOMIZE_HELP               9070
 
 // for Projects plug-in
 #ifdef USE_PROJECTS_PLUGIN
