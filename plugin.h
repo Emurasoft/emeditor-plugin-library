@@ -301,6 +301,7 @@
 //                      Added SPECIAL_SYNTAX_MARKDOWN
 //						LFI_USE_TEMP_FILE was renamed to LFI_USE_DISK_MODE, LFI_DONT_USE_TEMP_FILE was renamed to LFI_DONT_USE_DISK_MODE
 // v23.1                Added EEID_CUSTOMIZE_HELP
+// v24.1                Added EEID_CUSTOMIZE_AI
 //
 #pragma once
 
@@ -365,6 +366,7 @@
 #define E_UNFIT_STRING_FOUND				_HRESULT_TYPEDEF_(0xa0000047L)
 #define E_EMBEDDED_NEWLINES					_HRESULT_TYPEDEF_(0xa0000048L)
 #define E_DIFF_THREAD						_HRESULT_TYPEDEF_(0xa0000049L)  // used internally
+#define E_NULL_FOUND						_HRESULT_TYPEDEF_(0xa0000050L)
 
 #define S_MATCHED							_HRESULT_TYPEDEF_(0x20000001L)
 #define S_MATCHED_IGNORED					_HRESULT_TYPEDEF_(0x20000002L)
@@ -390,6 +392,7 @@
 #define CLR_NONE                0xFFFFFFFFL
 #endif
 
+#define REG_VERSION_24_1		32
 #define REG_VERSION_23_0		31
 #define REG_VERSION_22_3		30
 #define REG_VERSION_21_5		29
@@ -411,7 +414,7 @@
 #define REG_VERSION_13          13
 #define REG_VERSION_10          10
 #define REG_VERSION_3           3  // v3
-#define REG_VERSION             REG_VERSION_23_0
+#define REG_VERSION             REG_VERSION_24_1
 
 #define UPDATE_TREE_NONE			0
 #define UPDATE_OUTLINE				1
@@ -723,8 +726,9 @@
 #define SMART_COLOR_INVALID_CHAR		101 // v21.5
 #define SMART_COLOR_FUZZY_MATCH			102 // v22.0
 #define SMART_COLOR_INDICATOR_BOOKMARK_HOVERED	103
+#define SMART_COLOR_UNCONFIRMED			104 // v24.1
 
-#define MAX_SMART_COLOR					104
+#define MAX_SMART_COLOR					105
 
 #define SMART_COLOR_INVALID				MAX_SMART_COLOR
 
@@ -4812,7 +4816,7 @@ public:
     BYTE        m_nSpecialSyntax;   // v3.16: Special Syntax  (SPECIAL_SYNTAX_NONE (0) - MAX_SPECIAL_SYNTAX-1 (3))
 	BYTE		m_byteDummy14;
 	BYTE		m_byteDummy15;
-	BYTE		m_byteDummy16;
+	bool		m_bAiAssist;
     WCHAR       m_chEscape;         // v3.16: Escape character
     bool        m_bPasteAnsi;       // PRO only v3.16: Always Paste as ANSI
     bool        m_bNewTemplate;     // v3.17: Use template for a new file
@@ -5968,6 +5972,7 @@ public:
 #define EEID_CUSTOMIZE_CSV_OPTIONS        9068
 #define EEID_CUSTOMIZE_WEB                9069
 #define EEID_CUSTOMIZE_HELP               9070
+#define EEID_CUSTOMIZE_AI                 9071
 
 // for Projects plug-in
 #ifdef USE_PROJECTS_PLUGIN
