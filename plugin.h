@@ -367,6 +367,7 @@
 #define E_EMBEDDED_NEWLINES					_HRESULT_TYPEDEF_(0xa0000048L)
 #define E_DIFF_THREAD						_HRESULT_TYPEDEF_(0xa0000049L)  // used internally
 #define E_NULL_FOUND						_HRESULT_TYPEDEF_(0xa0000050L)
+#define E_AI_DISALLOWED						_HRESULT_TYPEDEF_(0xa0000051L)
 
 #define S_MATCHED							_HRESULT_TYPEDEF_(0x20000001L)
 #define S_MATCHED_IGNORED					_HRESULT_TYPEDEF_(0x20000002L)
@@ -467,6 +468,7 @@
 #define MIN_FIND_HISTORY 1
 #define MIN_RECENT_FILE 0
 #define MAX_RECENT_FILE 64
+#define MAX_FAVORITE_FILE 256
 #define MIN_RECENT_POPUP 1
 #define MAX_RECENT_POPUP MAX_RECENT_FILE
 #define DEF_RECENT_FILE 16
@@ -5857,6 +5859,11 @@ public:
 #define EEID_COPY_TO_OTHER                23247
 #define EEID_COPY_ALL_TO_OTHER            23248
 
+// v24.2
+#define EEID_HELP_REGISTRATION_INFO       23249
+#define EEID_ADD_TO_FAVORITES             23250
+#define EEID_SHOW_FAVORITES_BAR           23251
+
 // other commands
 #define EEID_FILE_MRU_FILE1               4609  // to EEID_FILE_MRU_FILE1 + 63
 #define EEID_MRU_FONT1                    4736  // to EEID_MRU_FONT1 + 63
@@ -5883,6 +5890,7 @@ public:
 #define EEID_UNDO_RECENT				  22848 // to EEID_UNDO_RECENT + 63
 #define EEID_REDO_RECENT				  22912 // to EEID_REDO_RECENT + 63
 #define EEID_TOOLBAR1					  22976 // to EEID_TOOLBAR1 + 256 (v20.9)
+#define EEID_FAVORITE_FILE1               28928 // to EEID_FAVORITE_FILE1 + 256
 
 #define EEID_CHARSET_DEFAULT              8704
 #define EEID_CHARSET_ARABIC               8705
@@ -5973,6 +5981,7 @@ public:
 #define EEID_CUSTOMIZE_WEB                9069
 #define EEID_CUSTOMIZE_HELP               9070
 #define EEID_CUSTOMIZE_AI                 9071
+#define EEID_CUSTOMIZE_FAVORITES          9072
 
 // for Projects plug-in
 #ifdef USE_PROJECTS_PLUGIN
