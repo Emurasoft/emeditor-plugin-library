@@ -469,6 +469,10 @@
 #define MIN_RECENT_FILE 0
 #define MAX_RECENT_FILE 64
 #define MAX_FAVORITE_FILE 256
+#define MAX_AI_ITEM	1024
+#define MAX_AI_NAME_LENGTH	40
+#define MAX_AI_TITLE_LENGTH	40
+
 #define MIN_RECENT_POPUP 1
 #define MAX_RECENT_POPUP MAX_RECENT_FILE
 #define DEF_RECENT_FILE 16
@@ -4104,6 +4108,7 @@ inline HRESULT Editor_RearrangeColumns( HWND hwnd, UINT nColumnArraySize, const 
 #define FLAG_WAIT_FINISHED			0x0200
 #define FLAG_CLOSE_ON_EXIT			0x0400
 #define FLAG_ADD_EOF				0x0800
+#define FLAG_SAVE_LOG				0x1000  // used internally
 
 #define FLAG_OPEN_WEB				0x0001
 #define FLAG_CLOSE_WEB				0x0002
@@ -5864,6 +5869,11 @@ public:
 #define EEID_ADD_TO_FAVORITES             23250
 #define EEID_SHOW_FAVORITES_BAR           23251
 
+// v24.3
+#define EEID_NEW_PROMPT                   23252
+#define EEID_SHOW_AI_BAR                  23253
+#define EEID_VIEW_CHAT_AI                 23254
+
 // other commands
 #define EEID_FILE_MRU_FILE1               4609  // to EEID_FILE_MRU_FILE1 + 63
 #define EEID_MRU_FONT1                    4736  // to EEID_MRU_FONT1 + 63
@@ -5889,8 +5899,9 @@ public:
 #define EEID_WORKSPACE_RECENT_FILE1       22784 // to EEID_WORKSPACE_RECENT_FILE1 + 63
 #define EEID_UNDO_RECENT				  22848 // to EEID_UNDO_RECENT + 63
 #define EEID_REDO_RECENT				  22912 // to EEID_REDO_RECENT + 63
-#define EEID_TOOLBAR1					  22976 // to EEID_TOOLBAR1 + 256 (v20.9)
-#define EEID_FAVORITE_FILE1               28928 // to EEID_FAVORITE_FILE1 + 256
+#define EEID_TOOLBAR1					  22976 // to EEID_TOOLBAR1 + 255 (v20.9)
+#define EEID_FAVORITE_FILE1               28928 // to EEID_FAVORITE_FILE1 + 255
+#define EEID_AI_ITEM1					  29184 // to EEID_AI_ITEM1 + 1023
 
 #define EEID_CHARSET_DEFAULT              8704
 #define EEID_CHARSET_ARABIC               8705
@@ -5982,6 +5993,8 @@ public:
 #define EEID_CUSTOMIZE_HELP               9070
 #define EEID_CUSTOMIZE_AI                 9071
 #define EEID_CUSTOMIZE_FAVORITES          9072
+#define EEID_CUSTOMIZE_AI_LIST            9073
+#define EEID_CUSTOMIZE_CHAT_AI            9074
 
 // for Projects plug-in
 #ifdef USE_PROJECTS_PLUGIN
