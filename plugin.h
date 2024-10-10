@@ -761,6 +761,12 @@
 #define SMART_COLOR_FONT_THICK_LINE	6
 #define SMART_COLOR_FONT_NOT_USED   SMART_COLOR_FONT_NORMAL
 
+#define BITS_FONT_BOLD				0x10
+#define BITS_FONT_ITALIC			0x20
+#define BITS_FONT_UNDRELINE_MASK	0x0f
+#define BITS_FONT_STYLE_MASK		0x30
+#define BITS_FONT_CODE				0x40   // internally used for Markdown parser
+
 #define QUOTE_NONE              0
 #define QUOTE_SINGLE            1
 #define QUOTE_DOUBLE            2
@@ -4330,6 +4336,9 @@ typedef struct _SUM_INFO
 #define EI_SET_WEB							405
 #define EI_OPEN_WEB							406
 
+// v24.4
+#define EI_GET_MARKDOWN_PREVIEW				407
+#define EI_SET_MARKDOWN_PREVIEW				408
 
 // end of nCmd
 
@@ -4355,7 +4364,9 @@ typedef struct _SUM_INFO
 #define VALIDATE_ADJUST_ENLARGE_ONLY	0x00000040
 #define VALIDATE_DETECT_CSV				0x00000080
 #define VALIDATE_ASYNC					0x00000100
+#define VALIDATE_NO_STATUS_MSG			0x00000200
 
+#define FORMAT_LEFT_ALIGNED				0
 #define FORMAT_RIGHT_ALIGNED			1
 #define FORMAT_CENTER_ALIGNED			2
 
@@ -4367,6 +4378,7 @@ typedef struct _SUM_INFO
 #define CSV_NOT_CSV						0x00000020
 #define CSV_ASYNC_SUCCESS				0x00000040
 #define CSV_ASYNC_RUNNING				0x00000080
+#define CSV_NO_STATUS_MSG				0x00000200  // internal use
 #define CSV_RETRY_SINGLE_THREAD			0x08000000  // internal use
 #define CSV_RETRY_MEMORY_LOW			0x10000000  // internal use
 #define CSV_RETRY_CHAR_NL				0x20000000  // internal use
@@ -4517,6 +4529,7 @@ typedef struct _SUM_INFO
 #define FLAG_FIND_SEPARATE_CRLF			0x0000'0001'0000'0000ull
 #define FLAG_FIND_REGEX_BOOST			0x0000'0002'0000'0000ull
 #define FLAG_FIND_REGEX_ONIGMO			0x0000'0004'0000'0000ull
+#define FLAG_FIND_REGEX_ONIGMO_PERL		0x0000'0006'0000'0000ull
 #define FLAG_FIND_REGEX_ENGINE_MASK     0x0000'0006'0000'0000ull
 #define FLAG_FIND_INSERT_COLUMN			0x0000'0010'0000'0000ull  // EE_REPLACE only
 #define FLAG_FIND_MATCH_NL				0x0000'0020'0000'0000ull
@@ -4977,7 +4990,8 @@ public:
 	bool IsSpellInCheckedAll() const {
 		return m_bSpellQuote && m_bSpellSingleQuotes && m_bSpellDoubleQuotes && m_bSpellComment && m_bSpellScript && m_bSpellInTag && m_bSpellHilite && m_bSpellHyperlink && m_bSpellRest;
 	}
-	int GetDefaultFontHeight( int nCharset, BOOL bUseCourierNew ) const;
+
+    static int GetDefaultFontHeight( int nCharset, BOOL bUseCourierNew );
 	void FreeDefault();
 };
 
@@ -5874,6 +5888,32 @@ public:
 #define EEID_SHOW_AI_BAR                  23253
 #define EEID_VIEW_CHAT_AI                 23254
 
+// v24.4
+#define EEID_MARKDOWN_VIEW                23255
+#define EEID_MARKDOWN_PARAGRAPH           23256
+#define EEID_MARKDOWN_HEADING1            23257
+#define EEID_MARKDOWN_HEADING2            23258
+#define EEID_MARKDOWN_HEADING3            23259
+#define EEID_MARKDOWN_HEADING4            23260
+#define EEID_MARKDOWN_HEADING5            23261
+#define EEID_MARKDOWN_HEADING6            23262
+#define EEID_MARKDOWN_BLOCKQUOTE          23263
+#define EEID_MARKDOWN_CODEBLOCK           23264
+#define EEID_MARKDOWN_NUMBERING           23265
+#define EEID_MARKDOWN_BULLETS             23266
+#define EEID_MARKDOWN_HR                  23267
+#define EEID_MARKDOWN_LINE_BREAK          23268
+#define EEID_MARKDOWN_BOLD                23269
+#define EEID_MARKDOWN_ITALIC              23270
+#define EEID_MARKDOWN_HYPERLINK           23271
+#define EEID_MARKDOWN_REMOVE_HYPERLINKS   23272
+#define EEID_MARKDOWN_TABLE               23273
+#define EEID_SHOW_MARKDOWN_BAR            23274
+#define EEID_MARKDOWN_PREVIEW             23275
+#define EEID_MARKDOWN_CLEAR               23276
+#define EEID_MARKDOWN_IMAGE               23277
+#define EEID_MARKDOWN_CODE                23278
+
 // other commands
 #define EEID_FILE_MRU_FILE1               4609  // to EEID_FILE_MRU_FILE1 + 63
 #define EEID_MRU_FONT1                    4736  // to EEID_MRU_FONT1 + 63
@@ -5995,6 +6035,7 @@ public:
 #define EEID_CUSTOMIZE_FAVORITES          9072
 #define EEID_CUSTOMIZE_AI_LIST            9073
 #define EEID_CUSTOMIZE_CHAT_AI            9074
+#define EEID_CUSTOMIZE_MARKDOWN           9075
 
 // for Projects plug-in
 #ifdef USE_PROJECTS_PLUGIN
