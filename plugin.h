@@ -4991,7 +4991,7 @@ public:
 		return m_bSpellQuote && m_bSpellSingleQuotes && m_bSpellDoubleQuotes && m_bSpellComment && m_bSpellScript && m_bSpellInTag && m_bSpellHilite && m_bSpellHyperlink && m_bSpellRest;
 	}
 
-    static int GetDefaultFontHeight( int nCharset, BOOL bUseCourierNew );
+    int GetDefaultFontHeight( int nCharset, BOOL bUseCourierNew );
 	void FreeDefault();
 };
 

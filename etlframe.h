@@ -491,7 +491,7 @@ public:
 		}
 	}
 
-	static BOOL IsLangExist( LPCWSTR szLang )
+	BOOL IsLangExist( LPCWSTR szLang )
 	{
 		if( szLang[0] != '.' ){
 			WCHAR szPath[MAX_PATH];
