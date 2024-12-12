@@ -393,6 +393,7 @@
 #define CLR_NONE                0xFFFFFFFFL
 #endif
 
+#define REG_VERSION_24_5		33
 #define REG_VERSION_24_1		32
 #define REG_VERSION_23_0		31
 #define REG_VERSION_22_3		30
@@ -415,7 +416,7 @@
 #define REG_VERSION_13          13
 #define REG_VERSION_10          10
 #define REG_VERSION_3           3  // v3
-#define REG_VERSION             REG_VERSION_24_1
+#define REG_VERSION             REG_VERSION_24_5
 
 #define UPDATE_TREE_NONE			0
 #define UPDATE_OUTLINE				1
@@ -1148,6 +1149,7 @@ typedef struct tagPOINT64
 #define HISTORY_DELETE_CHAR	  		0x00000002L
 #define HISTORY_INSERT_STRING		0x00000003L
 #define HISTORY_DELETE_STRING		0x00000005L
+#define HISTORY_HIDDEN_RANGE		0x00000006L  // v24.4.1
 #define HISTORY_REVISION_RANGE		0x00000007L
 #define HISTORY_SV_MODE				0x00000008L
 #define HISTORY_REPLACE_STRING		0x00000009L
@@ -4784,6 +4786,12 @@ typedef struct _SUM_INFO
 #define BACKUP_ATTR_HIDDEN			4
 #define BACKUP_ATTR_READONLY		8
 
+#define AI_ASSIST_FLAG_ENABLED		1  // AI assist writing
+#define AI_ASSIST_FLAG_ONLY_FORCED	2  // Show suggestion only on Ctrl+Space
+#define DEF_AI_ASSIST_CONF_PERCENT  70 // default AI assist confidence percent
+#define DEF_AI_ASSIST_INPUT			3  // default AI assist input length
+#define DEF_AI_ASSIST_OUTPUT		3  // default AI assist output length
+
 class CCustomizeInfo
 {
 public:
@@ -4832,11 +4840,11 @@ public:
     BYTE         m_nCrLfWrite;       // PRO only v3: how to return for saving  (SAVE_CRLF_NONE (0) - SAVE_CRLF_LF_ONLY (3))
 	bool		m_bEnsureFinalNL;   // v21.5
 	BYTE		m_byteDummy12;
-	BYTE		m_byteDummy13;
+	BYTE		m_byteAiAssistOutput;
     BYTE        m_nSpecialSyntax;   // v3.16: Special Syntax  (SPECIAL_SYNTAX_NONE (0) - MAX_SPECIAL_SYNTAX-1 (3))
-	BYTE		m_byteDummy14;
-	BYTE		m_byteDummy15;
-	bool		m_bAiAssist;
+	BYTE		m_byteAiAssistInput;
+	BYTE		m_byteAiAssistConfPercent;  // v24.5 Show suggestion only if confidence is higher than
+	BYTE		m_byteAiAssistFlags;  // v24.5 
     WCHAR       m_chEscape;         // v3.16: Escape character
     bool        m_bPasteAnsi;       // PRO only v3.16: Always Paste as ANSI
     bool        m_bNewTemplate;     // v3.17: Use template for a new file
@@ -5914,6 +5922,9 @@ public:
 #define EEID_MARKDOWN_IMAGE               23277
 #define EEID_MARKDOWN_CODE                23278
 
+// v24.5
+#define EEID_FILE_VERIFY                  23279
+
 // other commands
 #define EEID_FILE_MRU_FILE1               4609  // to EEID_FILE_MRU_FILE1 + 63
 #define EEID_MRU_FONT1                    4736  // to EEID_MRU_FONT1 + 63
@@ -5999,6 +6010,7 @@ public:
 #define EEID_PROPERTY_VALIDATION          8980
 #define EEID_PROPERTY_CHAR_CHECK          8981
 #define EEID_PROPERTY_LANGUAGE_SERVER     8982
+#define EEID_PROPERTY_AI_ASSIST           8983
 
 #define EEID_CUSTOMIZE_FILE               9040
 #define EEID_CUSTOMIZE_SEARCH             9041
@@ -6036,6 +6048,7 @@ public:
 #define EEID_CUSTOMIZE_AI_LIST            9073
 #define EEID_CUSTOMIZE_CHAT_AI            9074
 #define EEID_CUSTOMIZE_MARKDOWN           9075
+#define EEID_CUSTOMIZE_PROXY              9076
 
 // for Projects plug-in
 #ifdef USE_PROJECTS_PLUGIN
