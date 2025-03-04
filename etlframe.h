@@ -228,6 +228,23 @@ public:
 		return lResult;
 	}
 
+	static LRESULT GetTipString( LPWSTR pBuf, size_t cchBuf, UINT nID )
+	{
+		WCHAR sz[520];
+		HINSTANCE hinst = EEGetLocaleInstanceHandle();
+		LRESULT lResult = 0;
+		if( hinst ) {
+			lResult = LRESULT{ LoadStringW( hinst, nID, sz, _countof( sz ) ) } + 1;
+			if( pBuf ) {
+				LPWSTR p = wcschr( sz, '\n' );
+				if( p == NULL )  p = sz;
+				else p++;
+				StringCchCopyW( pBuf, cchBuf, p );
+			}
+		}
+		return lResult;
+	}
+
 	static LRESULT GetNameA( LPSTR pBuf, size_t cchBuf )
 	{
 		return GetStringA( pBuf, cchBuf, T::_IDS_NAME );
@@ -235,22 +252,32 @@ public:
 
 	static LRESULT GetNameW( LPWSTR pBuf, size_t cchBuf )
 	{
-		return GetStringW( pBuf, cchBuf, T::_IDS_NAME );
+		return GetTipString( pBuf, cchBuf, T::_IDS_NAME );
 	}
 
 	static LRESULT GetVersionA( LPSTR pBuf, size_t cchBuf )
 	{
-		return GetStringA( pBuf, cchBuf, T::_IDS_VER );
+		if( T::_IDS_VER ) {
+			return GetStringA( pBuf, cchBuf, T::_IDS_VER );
+		}
+		else {
+			return 0;
+		}
 	}
 
 	static LRESULT GetVersionW( LPWSTR pBuf, size_t cchBuf )
 	{
-		return GetStringW( pBuf, cchBuf, T::_IDS_VER );
+		if( T::_IDS_VER ) {
+			return GetStringW( pBuf, cchBuf, T::_IDS_VER );
+		}
+		else {
+			return 0;
+		}
 	}
 
 	static LRESULT GetMenuW( LPWSTR pBuf, size_t cchBuf )
 	{
-		return GetStringW( pBuf, cchBuf, T::_IDS_MENU );
+		return GetTipString( pBuf, cchBuf, T::_IDS_MENU );
 	}
 
 	static LRESULT GetStatusW( LPWSTR pBuf, size_t cchBuf )
@@ -268,17 +295,13 @@ public:
 		case EPGI_ALLOW_MULTIPLE_INSTANCES:
 			lResult = T::_ALLOW_MULTIPLE_INSTANCES;
 			break;
-		case EPGI_MAX_EE_VERSION:
-			lResult = T::_MAX_EE_VERSION;
-			break;
-		case EPGI_MIN_EE_VERSION:
-			lResult = T::_MIN_EE_VERSION;
-			break;
 		case EPGI_SUPPORT_EE_PRO:
 			lResult = T::_SUPPORT_EE_PRO;
 			break;
-		case EPGI_SUPPORT_EE_STD:
-			lResult = T::_SUPPORT_EE_STD;
+		case EPGI_SUPPORT_EE_STD:  // unused
+		case EPGI_MAX_EE_VERSION:  // unused
+		case EPGI_MIN_EE_VERSION:  // unused
+		default:
 			break;
 		}
 		return lResult;
@@ -919,7 +942,7 @@ extern "C" LRESULT __stdcall PlugInProc( HWND hwnd, UINT nMsg, WPARAM wParam, LP
 {
 	// hwnd can be either view handle, frame handle, or plug-ins settings dialog handle.
 	LRESULT lResult = 0;
-	switch( nMsg ){
+	switch( nMsg ) {
 	case EP_GET_BITMAP:
 		lResult = CETLFrameX::GetBitmap( wParam );
 		break;
@@ -948,14 +971,14 @@ extern "C" LRESULT __stdcall PlugInProc( HWND hwnd, UINT nMsg, WPARAM wParam, LP
 		lResult = CETLFrameX::GetStatusW( (LPWSTR)lParam, (size_t)wParam );
 		break;
 	default:
-		{
-			// hwnd is plug-ins settings dialog handle or view window handle.
-			CETLFrameX* pFrame = GetFrame( hwnd );
-			if( pFrame ){
-				lResult = pFrame->PlugInProc( hwnd, nMsg, wParam, lParam );
-			}
+	{
+		// hwnd is plug-ins settings dialog handle or view window handle.
+		CETLFrameX* pFrame = GetFrame( hwnd );
+		if( pFrame ) {
+			lResult = pFrame->PlugInProc( hwnd, nMsg, wParam, lParam );
 		}
-		break;
+	}
+	break;
 	}
 	return lResult;
 }
