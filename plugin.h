@@ -302,6 +302,10 @@
 //						LFI_USE_TEMP_FILE was renamed to LFI_USE_DISK_MODE, LFI_DONT_USE_TEMP_FILE was renamed to LFI_DONT_USE_DISK_MODE
 // v23.1                Added EEID_CUSTOMIZE_HELP
 // v24.1                Added EEID_CUSTOMIZE_AI
+// v24.4                Added EI_GET_MARKDOWN_PREVIEW, EI_SET_MARKDOWN_PREVIEW
+// v25.0                Added EI_IS_CHATAI_INSTALLED
+//                      Added FLAG_MARKDOWN_TO_HTML, FLAG_HTML_TO_MARKDOWN, FLAG_MARKDOWN_TO_TEXT, FLAG_HTML_TO_TEXT flags for EE_CONVERT message
+//                      Added EEID_MARKDOWN_TO_HTML, EEID_HTML_TO_MARKDOWN, EEID_MARKDOWN_TO_TEXT, EEID_HTML_TO_TEXT
 //
 #pragma once
 
@@ -368,6 +372,8 @@
 #define E_DIFF_THREAD						_HRESULT_TYPEDEF_(0xa0000049L)  // used internally
 #define E_NULL_FOUND						_HRESULT_TYPEDEF_(0xa0000050L)
 #define E_AI_DISALLOWED						_HRESULT_TYPEDEF_(0xa0000051L)
+#define E_AI_INVALID_KEY					_HRESULT_TYPEDEF_(0xa0000052L)  // used internally
+#define E_AI_INVALID_MODEL					_HRESULT_TYPEDEF_(0xa0000053L)  // used internally
 
 #define S_MATCHED							_HRESULT_TYPEDEF_(0x20000001L)
 #define S_MATCHED_IGNORED					_HRESULT_TYPEDEF_(0x20000002L)
@@ -4342,6 +4348,9 @@ typedef struct _SUM_INFO
 #define EI_GET_MARKDOWN_PREVIEW				407
 #define EI_SET_MARKDOWN_PREVIEW				408
 
+// v25.0
+#define EI_IS_CHATAI_INSTALLED				409
+
 // end of nCmd
 
 #define SYNC_SETTINGS_FALSE			0
@@ -4482,7 +4491,10 @@ typedef struct _SUM_INFO
 #define FLAG_DELETE_CSV_COLUMN				0x0001000e					
 #define FLAG_CLEAR_CSV_COLUMN				0x0001000f
 #define FLAG_DECODE_MIME_BASE64				0x00020000
-
+#define FLAG_MARKDOWN_TO_HTML				0x00020001
+#define FLAG_HTML_TO_MARKDOWN				0x00020002
+#define FLAG_MARKDOWN_TO_TEXT				0x00020003
+#define FLAG_HTML_TO_TEXT					0x00020004
 #define FLAG_CONVERT_MASK                   0x000f000f
 
 // EE_FIND, EE_REPLACE, EE_FIND_IN_FILES, EE_REPLACE_IN_FILES, EE_MATCH_REGEX, EE_FIND_REGEX
@@ -5924,6 +5936,12 @@ public:
 
 // v24.5
 #define EEID_FILE_VERIFY                  23279
+
+// v25.0
+#define EEID_MARKDOWN_TO_HTML             23280
+#define EEID_HTML_TO_MARKDOWN             23281
+#define EEID_MARKDOWN_TO_TEXT             23282
+#define EEID_HTML_TO_TEXT                 23283
 
 // other commands
 #define EEID_FILE_MRU_FILE1               4609  // to EEID_FILE_MRU_FILE1 + 63
