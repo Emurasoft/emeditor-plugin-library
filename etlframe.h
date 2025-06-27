@@ -2,35 +2,15 @@
 	Copyright (c) 2018 Emurasoft, Inc.
 	Licensed under the MIT license. See LICENSE for details.
 */
-
-#if _MSC_VER > 1000
 #pragma once
-#endif
 
 #include "plugin.h"
 #include <crtdbg.h>
-#pragma warning( push )
-#pragma warning( disable : 4995 ) // 'function': name was marked as #pragma deprecated
-#if _MSC_VER < 0x0700
-	#pragma warning( disable : 4786 ) // identifier was truncated to '255' characters in the browser information
-	#pragma warning( disable : 4512 ) // assignment operator could not be generated
-	#pragma warning( disable : 4100 ) // unreferenced formal parameter
-
-#endif
 #include <shlwapi.h>
-#include <strsafe.h>
+#include <PathCch.h>
 #include <unordered_map>
-#pragma warning( pop )
 
-#if _MSC_VER < 0x0700
-	#pragma warning( push )
-	#pragma warning( disable : 4127 ) // conditional expression is constant
-	#pragma warning( disable : 4786 ) // identifier was truncated to '255' characters in the browser information
-#endif
-
-#ifndef _countof
-#define _countof(array) (sizeof(array)/sizeof(array[0]))
-#endif
+#pragma comment(lib, "pathcch.lib")
 
 #define LOC_USE_EMEDLOC_DLL		2   // use emedloc.dll
 #define LOC_USE_LOC_DLL			1   // use _loc.dll in MUI sub folder
@@ -55,7 +35,7 @@
 #endif
 #endif
 
-LPCWSTR const szDefaultLang = L"DefaultLang";
+constexpr LPCWSTR szDefaultLang = L"DefaultLang";
 
 // forward declaration
 #define DEFINE_CREATE(c) 
@@ -67,12 +47,9 @@ CETLFrameX* _ETLCreateFrame();
 void _ETLDeleteFrame( CETLFrameX* pFrame );
 BOOL IsFileExist( LPCWSTR pszPathName );
 void GetModuleFilePath( LPCWSTR szFile, LPWSTR szPath );
-HINSTANCE GetInstancePath( LPCWSTR szPath, bool bResourceOnly );
+[[nodiscard]] HINSTANCE GetInstancePath( LPCWSTR szPath, bool bResourceOnly );
 
 #define _ETL_IMPLEMENT CETLFrameX* _ETLCreateFrame() { CETLFrameX* pFrame = new ETL_FRAME_CLASS_NAME; return pFrame; } void _ETLDeleteFrame( CETLFrameX* pFrame ) { delete static_cast<ETL_FRAME_CLASS_NAME*>(pFrame); }
-
-#pragma warning( push )
-#pragma warning( disable : 4127 ) // C4127: conditional expression is constant
 
 extern HINSTANCE EEGetLocaleInstanceHandle();
 extern HINSTANCE EEGetInstanceHandle();
@@ -140,9 +117,6 @@ public:
 #endif
 };
 
-#pragma warning( push ) 
-#pragma warning( disable : 4995 )  // 'PathAddBackslashW': name was marked as #pragma deprecated
-
 template <typename T> class __declspec(novtable) CETLFrame
 {
 public:
@@ -173,9 +147,9 @@ public:
 		return pT->QueryStatus( hwndView, pbChecked );
 	}
 
-	static UINT GetMenuTextID()
+	static constexpr UINT GetMenuTextID()
 	{
-		if( T::_USE_LOC_DLL ){
+		if constexpr( T::_USE_LOC_DLL ){
 			return 0;
 		}
 		else {
@@ -183,9 +157,9 @@ public:
 		}
 	}
 
-	static UINT GetStatusMessageID()
+	static constexpr UINT GetStatusMessageID()
 	{
-		if(  T::_USE_LOC_DLL ){
+		if constexpr( T::_USE_LOC_DLL ){
 			return 0;
 		}
 		else {
@@ -193,7 +167,7 @@ public:
 		}
 	}
 
-	static UINT GetBitmapID()
+	static constexpr UINT GetBitmapID()
 	{
 		return T::_IDB_BITMAP;
 	}
@@ -207,7 +181,7 @@ public:
 			lResult = LRESULT{ LoadStringA( hinst, nID, sz, _countof( sz ) ) } + 1;
 			//_ASSERTE( lResult > 1 );
 			if( pBuf ){
-				StringCchCopyA( pBuf, cchBuf, sz );
+				strcpy_s( pBuf, cchBuf, sz );
 			}
 		}
 		return lResult;
@@ -222,7 +196,7 @@ public:
 			lResult = LRESULT{ LoadStringW( hinst, nID, sz, _countof( sz ) ) } + 1;   // LoadStringW does not work on Windows 9x, but that is OK.
 			//_ASSERTE( lResult > 1 );  
 			if( pBuf ){
-				StringCchCopyW( pBuf, cchBuf, sz );
+				wcscpy_s( pBuf, cchBuf, sz );
 			}
 		}
 		return lResult;
@@ -239,7 +213,7 @@ public:
 				LPWSTR p = wcschr( sz, '\n' );
 				if( p == NULL )  p = sz;
 				else p++;
-				StringCchCopyW( pBuf, cchBuf, p );
+				wcscpy_s( pBuf, cchBuf, p );
 			}
 		}
 		return lResult;
@@ -257,7 +231,7 @@ public:
 
 	static LRESULT GetVersionA( LPSTR pBuf, size_t cchBuf )
 	{
-		if( T::_IDS_VER ) {
+		if constexpr( T::_IDS_VER ) {
 			return GetStringA( pBuf, cchBuf, T::_IDS_VER );
 		}
 		else {
@@ -267,7 +241,7 @@ public:
 
 	static LRESULT GetVersionW( LPWSTR pBuf, size_t cchBuf )
 	{
-		if( T::_IDS_VER ) {
+		if constexpr( T::_IDS_VER ) {
 			return GetStringW( pBuf, cchBuf, T::_IDS_VER );
 		}
 		else {
@@ -297,6 +271,9 @@ public:
 			break;
 		case EPGI_SUPPORT_EE_PRO:
 			lResult = T::_SUPPORT_EE_PRO;
+			break;
+		case EPGI_USE_CUSTOM_BAR:
+			lResult = T::_USE_CUSTOM_BAR;
 			break;
 		case EPGI_SUPPORT_EE_STD:  // unused
 		case EPGI_MAX_EE_VERSION:  // unused
@@ -348,7 +325,7 @@ public:
 		return lResult;
 	}
 
-	static LRESULT GetMask( WPARAM wParam )
+	static constexpr LRESULT GetMask( WPARAM wParam )
 	{
 		LRESULT lResult = 0;
 		if( wParam & BITMAP_24BIT_COLOR ){
@@ -357,7 +334,7 @@ public:
 		return lResult;
 	}
 
-	static LRESULT GetBitmap( WPARAM wParam )
+	static constexpr LRESULT GetBitmap( WPARAM wParam )
 	{
 		LRESULT lResult = 0;
 		if( wParam & BITMAP_LARGE ){
@@ -519,7 +496,7 @@ public:
 		if( szLang[0] != '.' ){
 			WCHAR szPath[MAX_PATH];
 			GetModuleFilePath( L"mui", szPath );
-			PathAppend( szPath, szLang );
+			PathCchAppend( szPath, _countof( szPath ), szLang );
 			return PathIsDirectory( szPath );
 		}
 		return FALSE;
@@ -532,15 +509,15 @@ public:
 		if( bSystemLang ){
 			WCHAR szFile[MAX_PATH];
 			UINT nLang = GetUserDefaultUILanguage();
-			StringCchPrintf( szFile, _countof( szFile ), L"%u", nLang );
+			_ultow_s( nLang, szFile, 10 );
 			if( IsLangExist( szFile ) ){
-				PathCombine( szFolder, szPath, szFile );
+				PathCchCombine( szFolder, MAX_PATH, szPath, szFile );
 				return TRUE;
 			}
 		}
 		if( szLang[0] ){
 			if( IsLangExist( szLang ) ){
-				PathCombine( szFolder, szPath, szLang );
+				PathCchCombine( szFolder, MAX_PATH, szPath, szLang );
 				return TRUE;
 			}
 		}
@@ -563,7 +540,7 @@ public:
 			do {
 				if( find.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY ){
 					if( IsLangExist( find.cFileName ) ){
-						StringCchCopy( szLang, _countof( szLang ), find.cFileName );
+						wcscpy_s( szLang, _countof( szLang ), find.cFileName );
 						break;
 					}
 				}
@@ -579,8 +556,8 @@ public:
 	BOOL GetDefaultResourceFolder( LPWSTR szFolder )
 	{
 		WCHAR szLang[MAX_PATH];
-		int nLang = GetProfileInt( EEREG_LM_COMMON, NULL, szDefaultLang, 1033 );
-		StringCchPrintf( szLang, _countof( szLang ), L"%d", nLang );
+		UINT nLang = (UINT)GetProfileInt( EEREG_LM_COMMON, NULL, szDefaultLang, 1033 );
+		_ultow_s( nLang, szLang, 10 );
 		BOOL bResult = GetResourceFolder( szFolder, false, szLang );
 		if( !bResult ){
 			bResult = GetAnyResourceFolder( szFolder );
@@ -596,7 +573,7 @@ public:
 		if( szDir[0] ){
 			PathStripPath( szDir );
 			GetModuleFilePath( L"mui", szFolder );
-			PathAppend( szFolder, szDir );
+			PathCchAppend( szFolder, MAX_PATH, szDir );
 			return TRUE;
 		}
 		return FALSE;
@@ -605,12 +582,12 @@ public:
 	BOOL GetResourceFile( LPWSTR szPath, LPCWSTR szFile )
 	{
 		if( GetResourceFolder( szPath ) ){
-			PathAppend( szPath, szFile );
+			PathCchAppend( szPath, MAX_PATH, szFile );
 			if( IsFileExist( szPath ) ){
 				return TRUE;
 			}
 			if( GetDefaultResourceFolder( szPath ) ){
-				PathAppend( szPath, szFile );
+				PathCchAppend( szPath, MAX_PATH, szFile );
 				if( IsFileExist( szPath ) ){
 					return TRUE;
 				}
@@ -622,26 +599,21 @@ public:
 
 	HINSTANCE GetEmedLocInstance()
 	{
-		if( T::_USE_LOC_DLL == LOC_USE_EMEDLOC_DLL ){
+		if constexpr( T::_USE_LOC_DLL == LOC_USE_EMEDLOC_DLL ){
 			HINSTANCE hinstLoc = (HINSTANCE)Editor_Info( m_hWnd, EI_GET_LOC_DLL_INSTANCE, 0 );
 			_ASSERT( hinstLoc );
 			return hinstLoc;
-			//WCHAR szPath[MAX_PATH];
-			//szPath[0] = 0;
-			//Editor_Info( m_hWnd, EI_GET_LANGUAGE, (LPARAM)szPath );
-			//PathAppend( szPath, L"emedloc.dll" );
-			//return GetInstancePath( szPath );
 		}
-		else if( T::_USE_LOC_DLL == LOC_USE_LOC_DLL ){
+		else if constexpr( T::_USE_LOC_DLL == LOC_USE_LOC_DLL ){
 			WCHAR szFileName[MAX_PATH];
 			WCHAR szPath[MAX_PATH];
 			szPath[0] = 0;
 			if( GetModuleFile( szFileName ) ) {
-				StringCchCat( szFileName, _countof( szFileName ), L"_loc.dll" );
+				wcscat_s( szFileName, _countof( szFileName ), L"_loc.dll" );
 				if( !GetResourceFile( szPath, szFileName ) ){
 					WCHAR sz[260];
-					StringCchCopy( sz, _countof( sz ), L"No localized file found - " );
-					StringCchCat( sz, _countof( sz ), szFileName );
+					wcscpy_s( sz, _countof( sz ), L"No localized file found - " );
+					wcscat_s( sz, _countof( sz ), szFileName );
 					::MessageBox( NULL, sz, L"EmEditor", MB_ICONSTOP | MB_OK );
 					return NULL;
 				}
@@ -658,15 +630,13 @@ public:
 
 	void FreeLocInstance( HINSTANCE hinstLoc )
 	{
-		if( T::_USE_LOC_DLL != LOC_USE_EMEDLOC_DLL ){
+		if constexpr( T::_USE_LOC_DLL != LOC_USE_EMEDLOC_DLL ){
 			if( hinstLoc != NULL ){
 				FreeLibrary( hinstLoc );
 			}
 		}
 	}
 };
-
-#pragma warning( pop )
 
 #ifndef EE_EXTERN_ONLY
 HINSTANCE EEGetLocaleInstanceHandle()
@@ -705,7 +675,7 @@ BOOL GetModuleFile( LPWSTR szFileName )
 	}
 	LPWSTR p = wcschr( pszFile, L'.' );
 	if( p != NULL )  *p = L'\0';
-	StringCchCopy( szFileName, MAX_PATH, pszFile );
+	wcscpy_s( szFileName, MAX_PATH, pszFile );
 	return TRUE;
 }
 
@@ -717,7 +687,7 @@ void GetModuleFilePath( LPCWSTR szFile, LPWSTR szPath )
 	if( ::GetModuleFileName( EEGetInstanceHandle(), szModulePath, MAX_PATH ) ) {
 		GetFullPathName( szModulePath, MAX_PATH, szPath, &p );
 	}
-	StringCchCopy( p, (size_t)( MAX_PATH - ( p - szPath ) ), szFile );
+	wcscpy_s( p, (size_t)( MAX_PATH - ( p - szPath ) ), szFile );
 }
 
 HINSTANCE GetInstancePath( LPCWSTR szPath, bool bResourceOnly )
@@ -727,7 +697,7 @@ HINSTANCE GetInstancePath( LPCWSTR szPath, bool bResourceOnly )
 	HINSTANCE hinstRes = ::LoadLibraryEx( szPath, NULL, bResourceOnly ? (LOAD_LIBRARY_AS_DATAFILE | LOAD_LIBRARY_AS_IMAGE_RESOURCE) : 0 );
 	if( hinstRes == NULL ){
 		WCHAR sz[MAX_PATH + 64];
-		StringCchPrintf( sz, _countof( sz ), L"Cannot load %s.", szPath );
+		swprintf_s( sz, _countof( sz ), L"Cannot load %s.", szPath );
 		MessageBox( NULL, sz, L"EmEditor", MB_OK | MB_ICONSTOP );
 		return NULL;
 	}
@@ -982,5 +952,4 @@ extern "C" LRESULT __stdcall PlugInProc( HWND hwnd, UINT nMsg, WPARAM wParam, LP
 	}
 	return lResult;
 }
-#pragma warning( pop )
 #endif // EE_EXTERN_ONLY
