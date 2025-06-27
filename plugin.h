@@ -306,6 +306,10 @@
 // v25.0                Added EI_IS_CHATAI_INSTALLED
 //                      Added FLAG_MARKDOWN_TO_HTML, FLAG_HTML_TO_MARKDOWN, FLAG_MARKDOWN_TO_TEXT, FLAG_HTML_TO_TEXT flags for EE_CONVERT message
 //                      Added EEID_MARKDOWN_TO_HTML, EEID_HTML_TO_MARKDOWN, EEID_MARKDOWN_TO_TEXT, EEID_HTML_TO_TEXT
+// v25.1                Added EI_RESET_BOOKMARK, EI_BRING_CUSTOM_BAR_TOP
+//                      Added EPGI_USE_CUSTOM_BAR
+//                      Added EEID_PANE_MENU, EEID_BOOKMARK_BAR
+//                      Removed EEID_DELETE_OLD_SETTINGS
 //
 #pragma once
 
@@ -403,25 +407,6 @@
 #define REG_VERSION_24_1		32
 #define REG_VERSION_23_0		31
 #define REG_VERSION_22_3		30
-#define REG_VERSION_21_5		29
-#define REG_VERSION_20_3		28
-#define REG_VERSION_19_6        27
-#define REG_VERSION_19_0        26
-#define REG_VERSION_18_7        25
-#define REG_VERSION_18_6        24
-#define REG_VERSION_18_1        23
-#define REG_VERSION_18_0        22
-#define REG_VERSION_17_0_2		21
-#define REG_VERSION_17_0		20
-#define REG_VERSION_17_0_B1		19
-#define REG_VERSION_16_9		18
-#define REG_VERSION_16_3		17
-#define REG_VERSION_14_6		16
-#define REG_VERSION_14_3        15
-#define REG_VERSION_14          14
-#define REG_VERSION_13          13
-#define REG_VERSION_10          10
-#define REG_VERSION_3           3  // v3
 #define REG_VERSION             REG_VERSION_24_5
 
 #define UPDATE_TREE_NONE			0
@@ -489,52 +474,26 @@
 
 #define DEFAULT_COLOR		(ULONG_MAX-1)
 #define TRANSPARENT_COLOR	(ULONG_MAX-2)
+#define HIGHLIGHTTEXT_COLOR (ULONG_MAX-3)  // GetSysColor( COLOR_HIGHLIGHTTEXT )
+#define HIGHLIGHT_COLOR		(ULONG_MAX-4)  // GetSysColor( COLOR_HIGHLIGHT )
 #define NOT_USED_COLOR		TRANSPARENT_COLOR
 
 #define SIGNATURE_FACE_LIST         0x00FF0000
 #define SIGNATURE_HILITE_LIST       0x00FF0100
 #define SIGNATURE_FIND_LIST         0x00FF0200
-#define SIGNATURE_PIK_LIST          0x00FF0300
-#define SIGNATURE_PIB_LIST_2        0x00FF0401
+#define SIGNATURE_PIB_LIST_2        0x00FF0401  // necessary for compatibility v25.1.  OK to delete after June 2028
 #define SIGNATURE_PIB_LIST_3        0x00FF0402
 #define SIGNATURE_ASSOCIATE_LIST    0x00FF0500
 #define SIGNATURE_NEW_ASSOCIATE_LIST   0x00FF0501
 #define SIGNATURE_CODEPAGE_LIST_2   0x00FF0601
-#define SIGNATURE_MENU_LIST         0x00FF0700
-#define SIGNATURE_MENU_LIST_2       0x00FF0701
-#define SIGNATURE_TOOL_LIST         0x00FF0800
-#define SIGNATURE_TOOL_LIST_2       0x00FF0801
 #define SIGNATURE_TOOL_LIST_3       0x00FF0802
-#define SIGNATURE_PIK_T_LIST        0x00FF0900
 #define SIGNATURE_WORKSPACE_LISTW   0x00FF0A00
-#define SIGNATURE_WORKSPACE_LISTA   0x00FF0A01
-#define SIGNATURE_WORKSPACE_LISTW_2 0x00FF0A02
-#define SIGNATURE_WORKSPACE_LISTA_2 0x00FF0A03
-#define SIGNATURE_WORKSPACE_LISTW_3 0x00FF0A06
-#define SIGNATURE_WORKSPACE_LISTA_3 0x00FF0A07
-#define SIGNATURE_WORKSPACE_LISTW_4 0x00FF0A08 // new v9
-#define SIGNATURE_WORKSPACE_LISTW_5 0x00FF0A09 // new v10
-#define SIGNATURE_WORKSPACE_LISTW_6 0x00FF0A0A // new v13
-#define SIGNATURE_WORKSPACE_LISTW_7 0x00FF0A0B // new v14.4
-#define SIGNATURE_WORKSPACE_LISTW_8 0x00FF0A0C // new v15.5
 #define SIGNATURE_WORKSPACE_LISTW_9 0x00FF0A0D // new v16.0
 /// if you need to add SIGNATURE_WORKSPACE_LISTW_x, remember to edit MyCmdLine.cpp ("wst.") !!
 #define SIGNATURE_WORKSPACE_LIST	SIGNATURE_WORKSPACE_LISTW_9
-#define SIGNATURE_PIK_M_LIST        0x00FF0B00
-#define SIGNATURE_MACRO_LANG_LIST   0x00FF0C00
-#define SIGNATURE_THEME_LIST        0x00FF0D00
 #define SIGNATURE_THEME_LIST_2      0x00FF0D01
-#define SIGNATURE_PAIR_LIST         0x00FF0E00
-#define SIGNATURE_PAIR_LIST_2       0x00FF0E01
-#define SIGNATURE_PAIR_LIST_3       0x00FF0E02
-#define SIGNATURE_MARKER_LIST       0x00FF0F00
 #define SIGNATURE_MARKER_LIST_2     0x00FF0F01
-#define SIGNATURE_GUIDE_LIST		0x00ff1000
-#define SIGNATURE_SV_LIST			0x00FF1100
-#define SIGNATURE_SV_LIST_2			0x00FF1101
-#define SIGNATURE_FILTER_LIST		0x00ff1200
 #define SIGNATURE_FILTER_LIST_2		0x00ff1201
-#define SIGNATURE_COLOR_VAR_LIST	0x00ff1300
 #define SIGNATURE_COLOR_VAR_LIST_2	0x00ff1301
 
 #define MAX_CODEPAGE_NAME 80
@@ -603,11 +562,14 @@
 #ifdef _WIN64
 #ifdef _DEBUG
 #define MAX_UNDO_COUNT			0x01000000
+#define MAX_UNDO_COUNT2			0x00100000
 #else
 #define MAX_UNDO_COUNT			0x08000000
+#define MAX_UNDO_COUNT2			0x00100000
 #endif
 #else
-#define MAX_UNDO_COUNT			0x00100000  // 0x00800000
+#define MAX_UNDO_COUNT			0x00100000
+#define MAX_UNDO_COUNT2			0x00100000
 #endif
 #define MIN_UNDO_COUNT			0x100
 
@@ -745,16 +707,6 @@
 
 #define SMART_COLOR_INVALID				MAX_SMART_COLOR
 
-#define MAX_SMART_COLOR_V15_8		80
-#define MAX_SMART_COLOR_V15_4		78
-#define MAX_SMART_COLOR_V14_6		75
-#define MAX_SMART_COLOR_V14_3		72
-#define MAX_SMART_COLOR_V14_2		61
-#define MAX_SMART_COLOR_V14			60
-#define MAX_SMART_COLOR_V12			59
-#define MAX_SMART_COLOR_V11			58
-#define MAX_SMART_COLOR_V10			44
-#define MAX_SMART_COLOR_V9			30
 #define MAX_SMART_COLOR_FIND		(MAX_SMART_COLOR + (MAX_FIND_HILITE + 1))
 
 #define	MAX_MARKER_COLOR			10
@@ -2723,6 +2675,8 @@ inline LONG Editor_RegSetValue( HWND hwnd, DWORD dwKey, LPCWSTR pszConfig, LPCWS
 #define EE_REG_QUERY_VALUE				(EE_FIRST+86)
   // (REG_QUERY_VALUE_INFO*)lParam = pRegQueryValueInfo;
 
+#define REG_QUERY_DEFAULT		1
+
 inline LONG Editor_RegQueryValue( HWND hwnd, DWORD dwKey, LPCWSTR pszConfig, LPCWSTR pszValue, DWORD dwType, BYTE* lpData, DWORD* lpcbData, DWORD dwFlags )
 {
 	_ASSERT( hwnd && IsWindow( hwnd ) );
@@ -4351,6 +4305,9 @@ typedef struct _SUM_INFO
 // v25.0
 #define EI_IS_CHATAI_INSTALLED				409
 
+// v25.1
+#define EI_RESET_BOOKMARK					410
+#define EI_BRING_CUSTOM_BAR_TOP				411
 // end of nCmd
 
 #define SYNC_SETTINGS_FALSE			0
@@ -4413,7 +4370,6 @@ typedef struct _SUM_INFO
 #define POS_TAB_A                   3
 #define MAX_LINE_COLUMN_MODE		4
 #define POS_CELL_LOGICAL			3  // same as POS_TAB_A, but never used together
-#define POS_CELL					POS_CELL_LOGICAL  // obsolete
 #define POS_CELL_VIEW				4
 
 #define POS_SCROLL_DONT_CARE		0x00000000
@@ -4668,6 +4624,7 @@ typedef struct _SUM_INFO
 #define EPGI_SUPPORT_EE_PRO             4
 #define EPGI_SUPPORT_EE_STD             5
 #define EPGI_ALLOW_MULTIPLE_INSTANCES	6
+#define EPGI_USE_CUSTOM_BAR				7
 
 #define CHECK_FILE_CHANGED_NONE         0
 #define CHECK_FILE_CHANGED_PROMPT       1
@@ -5172,7 +5129,6 @@ public:
 #define EEID_FILE_RELOAD_UNICODE_BIGENDIAN 4261
 #define EEID_EDIT_PASTE_ANSI              4262
 #define EEID_FILE_RELOAD_932              4263
-#define EEID_DEFINE_CODE_PAGE             4264
 #define EEID_FILE_SAVE_932                4265
 #define EEID_CUSTOMIZE_MENU               4266
 #define EEID_ALL_COMMANDS                 4267
@@ -5600,7 +5556,6 @@ public:
 
 // v14.9
 #define EEID_REMOVE_EMBEDDED_NL           3922
-//#define EEID_FINDBAR_EMBEDDED_NL		  3923  // obsolete
 
 // v15.0
 #define EEID_WORKSPACE_OPEN               3924
@@ -5697,9 +5652,6 @@ public:
 
 // v16.9
 #define EEID_FILTER_COLUMN                3983
-
-// v17.0
-#define EEID_DELETE_OLD_SETTINGS          3984
 
 // v17.1
 #define EEID_HEADER_TOGGLE                3985
@@ -5943,6 +5895,10 @@ public:
 #define EEID_MARKDOWN_TO_TEXT             23282
 #define EEID_HTML_TO_TEXT                 23283
 
+// v25.1
+#define EEID_PANE_MENU                    23284
+#define EEID_BOOKMARK_BAR                 23285
+
 // other commands
 #define EEID_FILE_MRU_FILE1               4609  // to EEID_FILE_MRU_FILE1 + 63
 #define EEID_MRU_FONT1                    4736  // to EEID_MRU_FONT1 + 63
@@ -6064,9 +6020,12 @@ public:
 #define EEID_CUSTOMIZE_AI                 9071
 #define EEID_CUSTOMIZE_FAVORITES          9072
 #define EEID_CUSTOMIZE_AI_LIST            9073
-#define EEID_CUSTOMIZE_CHAT_AI            9074
 #define EEID_CUSTOMIZE_MARKDOWN           9075
 #define EEID_CUSTOMIZE_PROXY              9076
+#define EEID_CUSTOMIZE_TOOLBAR_OPTIONS    9077
+#define EEID_CUSTOMIZE_TOOLBAR_BUTTONS    9078
+#define EEID_CUSTOMIZE_MENUS              9079
+#define EEID_CUSTOMIZE_ENCODINGS		  9080
 
 // for Projects plug-in
 #ifdef USE_PROJECTS_PLUGIN
