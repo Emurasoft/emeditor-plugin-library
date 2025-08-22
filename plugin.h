@@ -310,6 +310,8 @@
 //                      Added EPGI_USE_CUSTOM_BAR
 //                      Added EEID_PANE_MENU, EEID_BOOKMARK_BAR
 //                      Removed EEID_DELETE_OLD_SETTINGS
+//						Added EEID_SORT_SIMILARITY
+//						Added SORT_SIMILARITY
 //
 #pragma once
 
@@ -3173,6 +3175,7 @@ inline BOOL Editor_GetColor( HWND hwnd, BOOL bFind, UINT nIndex, COLORREF* pclrT
 #define SORT_WORDS								0x00100000
 #define SORT_DATE								0x00080000
 #define SORT_SELECTION_ONLY						0x00040000
+#define SORT_SIMILARITY							0x0000a000
 #define SORT_RANDOM								0x00008000
 #define SORT_REVERSE							0x00006000
 #define SORT_IPV4								0x00004000
@@ -3193,6 +3196,17 @@ inline BOOL Editor_GetColor( HWND hwnd, BOOL bFind, UINT nIndex, COLORREF* pclrT
 #define MANAGE_DUPLICATES_IGNORE_CASE			NORM_IGNORECASE   // 1
 #define COMBINE_LINES_IGNORE_CASE               0x00000100
 #define SPLIT_DONT_DISCARD_EXTRA				0x00000100
+
+constexpr UINT SortType( UINT nFlags )
+{
+	return nFlags & ( SORT_NUM | SORT_LENGTH | SORT_WORDS | SORT_OCCURRENCE | SORT_DATE | SORT_RANDOM | SORT_IPV4 | SORT_IPV6 );
+}
+
+constexpr bool SortDirectional( UINT nFlags )
+{
+	const UINT nSortType = SortType( nFlags );
+	return nSortType == SORT_RANDOM || nSortType == SORT_SIMILARITY || nSortType == SORT_REVERSE;
+}
 
 #define SORT_MASK				(NORM_IGNORECASE|NORM_IGNOREKANATYPE|NORM_IGNORENONSPACE|NORM_IGNORESYMBOLS|NORM_IGNOREWIDTH|SORT_STRINGSORT|SORT_DIGITSASNUMBERS)   // 0x0003100f
 #define SORT_MASK_ALL			(SORT_MASK | SORT_IGNORE_PREFIX | SORT_LENGTH_VIEW | SORT_STABLE | SORT_BINARY_COMPARISON | SORT_UNQUOTE_CELLS | SORT_INSPECT_NOT_SEL_ONLY | SORT_GROUP_IDENTICAL | SORT_DIGIT_GROUPING)
@@ -4033,10 +4047,10 @@ inline BOOL Editor_Convert( HWND hwnd, UINT nFlags, LPCWSTR szChars = NULL, LPCW
 typedef struct _REARRANGE_COLUMNS_INFO {
 	UINT	cbSize;
 	UINT	nColumnArraySize;
-	const INT* piColumn;
+	const int* piColumn;
 } REARRANGE_COLUMNS_INFO;
 
-inline HRESULT Editor_RearrangeColumns( HWND hwnd, UINT nColumnArraySize, const INT* piColumn )
+inline HRESULT Editor_RearrangeColumns( HWND hwnd, UINT nColumnArraySize, const int* piColumn )
 {
 	_ASSERT( hwnd && IsWindow( hwnd ) );
 	REARRANGE_COLUMNS_INFO data = { sizeof( data ) };
@@ -4934,10 +4948,10 @@ public:
     WCHAR       m_chTagLeft;                // begin tag
     WCHAR       m_chTagRight;               // end tag
     WCHAR       m_szHeader[MAX_HEADER];             // header
-    WCHAR       m_szLineComment1[MAX_LINE_COMMENT]; // v3.16: Line Comment (obsolete)
+    WCHAR       m_szDummy1[MAX_LINE_COMMENT];		// not used
     WCHAR       m_szScriptBegin[MAX_SCRIPT_BEGIN];  // v3.16: Script Begin
     WCHAR       m_szFooter[MAX_FOOTER];             // footer
-    WCHAR       m_szLineComment2[MAX_LINE_COMMENT]; // v3.16: Line Comment (obsolete)
+    WCHAR       m_szDummy2[MAX_LINE_COMMENT];		// not used
     WCHAR       m_szScriptEnd[MAX_SCRIPT_END];      // v3.16: Script End
     WCHAR       m_szPrefix[MAX_PREFIX_LENGTH];      // default quote mark 
     WCHAR       m_szKinsokuBegin[MAX_KINSOKU_BEGIN]; // not allowed at line head
@@ -4960,15 +4974,15 @@ public:
 	WCHAR		m_szConfigCopiedFrom[MAX_DEF_CONFIG_NAME];  // v17.0
     
 public:
-    void Initialize();
-	bool IsSpellInCheckedAny() const {
-		return m_bSpellQuote || m_bSpellSingleQuotes || m_bSpellDoubleQuotes || m_bSpellComment || m_bSpellScript || m_bSpellInTag || m_bSpellHilite || m_bSpellHyperlink || m_bSpellRest;
+	CCustomizeInfo() {
+		memset( this, 0, sizeof( CCustomizeInfo ) );
 	}
-	bool IsSpellInCheckedAll() const {
-		return m_bSpellQuote && m_bSpellSingleQuotes && m_bSpellDoubleQuotes && m_bSpellComment && m_bSpellScript && m_bSpellInTag && m_bSpellHilite && m_bSpellHyperlink && m_bSpellRest;
-	}
-
-    int GetDefaultFontHeight( int nCharset, BOOL bUseCourierNew );
+	void Initialize();
+	[[nodiscard]] bool IsSpellInCheckedAny() const;
+	[[nodiscard]] bool IsSpellInCheckedAll() const;
+	[[nodiscard]] int GetDefaultFontHeight( int nCharset, BOOL bUseCourierNew ) const;
+	[[nodiscard]] bool operator==( const CCustomizeInfo& other ) const;
+	[[nodiscard]] void assign( const CCustomizeInfo& other );
 	void FreeDefault();
 };
 
@@ -5898,6 +5912,9 @@ public:
 // v25.1
 #define EEID_PANE_MENU                    23284
 #define EEID_BOOKMARK_BAR                 23285
+
+// v25.3
+#define EEID_SORT_SIMILARITY              23286
 
 // other commands
 #define EEID_FILE_MRU_FILE1               4609  // to EEID_FILE_MRU_FILE1 + 63

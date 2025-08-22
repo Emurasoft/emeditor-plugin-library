@@ -379,7 +379,7 @@ public:
 		if( ERROR_SUCCESS == Editor_RegQueryValue( m_hWnd, dwKey, pszConfig, lpszEntry, REG_SZ, (LPBYTE)lpszBuf, &dwSize, 0 ) ){
 			return;
 		}
-		lstrcpynW( lpszBuf, lpszDefault, cchBufSize );
+		wcsncpy_s( lpszBuf, cchBufSize, lpszDefault, _TRUNCATE );
 	}
 
 	void GetProfileString( LPCWSTR lpszEntry, LPWSTR lpszBuf, DWORD cchBufSize, LPCWSTR lpszDefault )
@@ -389,7 +389,7 @@ public:
 			GetProfileString( EEREG_EMEDITORPLUGIN, szFileName, lpszEntry, lpszBuf, cchBufSize, lpszDefault );
 			return;
 		}
-		lstrcpynW( lpszBuf, lpszDefault, cchBufSize );
+		wcsncpy_s( lpszBuf, cchBufSize, lpszDefault, _TRUNCATE );
 	}
 
 	int GetProfileInt( DWORD dwKey, LPCWSTR pszConfig, LPCWSTR lpszEntry, int nDefault )
@@ -760,12 +760,17 @@ void DeleteAllFrames()
 	_ETLData.m_pETLFrameMap->clear();
 }
 
+inline void __CRTDECL myInvalidParameterHandler( [[maybe_unused]] const wchar_t* expression, [[maybe_unused]] const wchar_t* function, [[maybe_unused]] const wchar_t* file, [[maybe_unused]] unsigned int line, [[maybe_unused]] uintptr_t pReserved )
+{
+}
+
 BOOL APIENTRY DllMain( HINSTANCE hModule, DWORD  ul_reason_for_call, LPVOID /*lpReserved*/ )
 {
     if( ul_reason_for_call == DLL_PROCESS_ATTACH ){
 #ifdef _DEBUG
 		_CrtSetDbgFlag( _CRTDBG_ALLOC_MEM_DF | _CRTDBG_CHECK_EVERY_1024_DF | _CRTDBG_LEAK_CHECK_DF );
 #endif
+		_set_invalid_parameter_handler( myInvalidParameterHandler );
 		_ASSERTE( _ETLData.m_hInstance == NULL );
 		_ETLData.m_hInstance = hModule;
 	}
