@@ -2851,6 +2851,7 @@ inline HRESULT Editor_RunMacro( HWND hwnd, UINT nFlags, UINT nDefMacroLang, LPCW
 #define TEMP_INFO_CLOSE			1
 #define TEMP_INFO_SAVE			2
 #define TEMP_INFO_QUIT			4
+#define TEMP_INFO_NO_ID			8
 
 typedef struct _TEMP_INFO {
 	size_t		cbSize;
@@ -4983,7 +4984,7 @@ public:
 	void Initialize();
 	[[nodiscard]] bool IsSpellInCheckedAny() const;
 	[[nodiscard]] bool IsSpellInCheckedAll() const;
-	[[nodiscard]] int GetDefaultFontHeight( int nCharset, BOOL bUseCourierNew ) const;
+	[[nodiscard]] int GetDefaultFontHeight( int nCharset ) const;
 	[[nodiscard]] bool operator==( const CCustomizeInfo& other ) const;
 	[[nodiscard]] void assign( const CCustomizeInfo& other );
 	void FreeDefault();
