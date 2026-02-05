@@ -528,6 +528,11 @@ public:
 
 	BOOL GetAnyResourceFolder( LPWSTR szFolder )
 	{
+		// try English first.
+		if( IsLangExist( L"1033" ) ) {
+			return GetResourceFolder( szFolder, false, L"1033" );
+		}
+
 		// find anything available.
 		WCHAR szLang[MAX_PATH];
 		szLang[0] = 0;
@@ -553,18 +558,6 @@ public:
 		return FALSE;
 	}
 
-	BOOL GetDefaultResourceFolder( LPWSTR szFolder )
-	{
-		WCHAR szLang[MAX_PATH];
-		UINT nLang = (UINT)GetProfileInt( EEREG_LM_COMMON, NULL, szDefaultLang, 1033 );
-		_ultow_s( nLang, szLang, 10 );
-		BOOL bResult = GetResourceFolder( szFolder, false, szLang );
-		if( !bResult ){
-			bResult = GetAnyResourceFolder( szFolder );
-		}
-		return bResult;
-	}
-
 	BOOL GetResourceFolder( LPWSTR szFolder )
 	{
 		WCHAR szDir[MAX_PATH];
@@ -581,16 +574,16 @@ public:
 
 	BOOL GetResourceFile( LPWSTR szPath, LPCWSTR szFile )
 	{
-		if( GetResourceFolder( szPath ) ){
+		if( GetResourceFolder( szPath ) ) {
+			PathCchAppend( szPath, MAX_PATH, szFile );
+			if( IsFileExist( szPath ) ) {
+				return TRUE;
+			}
+		}
+		if( GetAnyResourceFolder( szPath ) ){
 			PathCchAppend( szPath, MAX_PATH, szFile );
 			if( IsFileExist( szPath ) ){
 				return TRUE;
-			}
-			if( GetDefaultResourceFolder( szPath ) ){
-				PathCchAppend( szPath, MAX_PATH, szFile );
-				if( IsFileExist( szPath ) ){
-					return TRUE;
-				}
 			}
 		}
 		szPath[0] = 0;
