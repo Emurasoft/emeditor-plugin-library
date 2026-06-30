@@ -314,6 +314,7 @@
 //						Added SORT_SIMILARITY
 // v26.1                Added EE_GET_SEL_LENGTH message
 //                      Added Editor_GetSelLength inline function
+// v26.2                Added EEID_AI_ASSISTED_WRITING
 //
 #pragma once
 
@@ -4787,9 +4788,14 @@ typedef struct _SUM_INFO
 
 #define AI_ASSIST_FLAG_ENABLED		1  // AI assist writing
 #define AI_ASSIST_FLAG_ONLY_FORCED	2  // Show suggestion only on Ctrl+Space
+#define AI_ASSIST_FLAG_DONT_SHOW_AFTER	4  // Don't show suggestions after any of
+#define AI_ASSIST_FLAG_SHOW_CONFIDENT   8  // Show suggestions only when confident
+#define AI_ASSIST_SET_TEMPERATURE		0x0010  // Set the temperature
+
 #define DEF_AI_ASSIST_CONF_PERCENT  70 // default AI assist confidence percent
 #define DEF_AI_ASSIST_INPUT			3  // default AI assist input length
-#define DEF_AI_ASSIST_OUTPUT		3  // default AI assist output length
+#define DEF_AI_ASSIST_OUTPUT		5  // default AI assist output length
+#define DEF_AI_ASSIST_DELAY			200 // default AI assist delay time in milliseconds
 
 class CCustomizeInfo
 {
@@ -5931,6 +5937,9 @@ public:
 
 // v25.4
 #define EEID_SHOW_SNIPPETS_BAR            23287
+
+// v26.2
+#define EEID_AI_ASSISTED_WRITING          23288
 
 // other commands
 #define EEID_FILE_MRU_FILE1               4609  // to EEID_FILE_MRU_FILE1 + 63

@@ -45,7 +45,7 @@ typedef CETLFrame<ETL_FRAME_CLASS_NAME> CETLFrameX;
 typedef std::unordered_map<HWND, CETLFrameX*> CETLFrameMap;
 CETLFrameX* _ETLCreateFrame();
 void _ETLDeleteFrame( CETLFrameX* pFrame );
-BOOL IsFileExist( LPCWSTR pszPathName );
+BOOL _IsFileExist( LPCWSTR pszPathName );
 void GetModuleFilePath( LPCWSTR szFile, LPWSTR szPath );
 [[nodiscard]] HINSTANCE GetInstancePath( LPCWSTR szPath, bool bResourceOnly );
 
@@ -53,7 +53,7 @@ void GetModuleFilePath( LPCWSTR szFile, LPWSTR szPath );
 
 extern HINSTANCE EEGetLocaleInstanceHandle();
 extern HINSTANCE EEGetInstanceHandle();
-extern BOOL IsFileExist( LPCWSTR pszPathName );
+extern BOOL _IsFileExist( LPCWSTR pszPathName );
 extern BOOL GetModuleFile( LPWSTR szFileName );
 extern WORD EEGetCmdID();
 extern CETLFrameX* GetFrameFromFrame( HWND hwndFrame );
@@ -576,13 +576,13 @@ public:
 	{
 		if( GetResourceFolder( szPath ) ) {
 			PathCchAppend( szPath, MAX_PATH, szFile );
-			if( IsFileExist( szPath ) ) {
+			if( _IsFileExist( szPath ) ) {
 				return TRUE;
 			}
 		}
 		if( GetAnyResourceFolder( szPath ) ){
 			PathCchAppend( szPath, MAX_PATH, szFile );
-			if( IsFileExist( szPath ) ){
+			if( _IsFileExist( szPath ) ){
 				return TRUE;
 			}
 		}
@@ -649,9 +649,10 @@ HINSTANCE EEGetInstanceHandle()
 	return _ETLData.m_hInstance;
 }
 
-BOOL IsFileExist( LPCWSTR pszPathName )
+[[nodiscard]] inline BOOL _IsFileExist( LPCWSTR pszPathName )
 {
-	return( !(GetFileAttributes( pszPathName ) & FILE_ATTRIBUTE_DIRECTORY) );
+	const DWORD dwAttr = GetFileAttributesW( pszPathName );
+	return ( dwAttr != INVALID_FILE_ATTRIBUTES ) && !( dwAttr & FILE_ATTRIBUTE_DIRECTORY );
 }
 
 // buffer must be MAX_PATH character long.
