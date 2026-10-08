@@ -315,6 +315,8 @@
 // v26.1                Added EE_GET_SEL_LENGTH message
 //                      Added Editor_GetSelLength inline function
 // v26.2                Added EEID_AI_ASSISTED_WRITING
+// v26.3                Added EEID_FAST_VIEW
+//                      Added EI_GET_FAST_VIEW
 //
 #pragma once
 
@@ -749,13 +751,6 @@
 // v7
 #define EEREG_COMMON				(0x7fffff00)  // HKEY_CURRENT_USER\Software\EmSoft\EmEditor v3\Common             or eeCommon.ini\[Common]
 #define EEREG_REGIST				(0x7fffff01)  // HKEY_CURRENT_USER\Software\EmSoft\Regist                         or eeCommon.ini\[Regist]
-#define EEREG_MACROS				(0x7fffff02)  // HKEY_CURRENT_USER\Software\EmSoft\EmEditor v3\Macros             or eeCommon.ini\[Macros]
-#define EEREG_PLUGINS				(0x7fffff03)  // HKEY_CURRENT_USER\Software\EmSoft\EmEditor v3\PlugIns            or eeCommon.ini\[PlugIns]
-#define EEREG_RECENT_FILE_LIST		(0x7fffff04)  // HKEY_CURRENT_USER\Software\EmSoft\EmEditor v3\Recent File List   or eeCommon.ini\[Recent File List]
-#define EEREG_RECENT_FOLDER_LIST	(0x7fffff05)  // HKEY_CURRENT_USER\Software\EmSoft\EmEditor v3\Recent Folder List or eeCommon.ini\[Recent Folder List]
-#define EEREG_RECENT_FONT_LIST		(0x7fffff06)  // HKEY_CURRENT_USER\Software\EmSoft\EmEditor v3\Recent Font List   or eeCommon.ini\[Recent Font List]
-#define EEREG_RECENT_INSERT_LIST	(0x7fffff07)  // HKEY_CURRENT_USER\Software\EmSoft\EmEditor v3\Recent Insert List or eeCommon.ini\[Recent Insert List]
-//#define EEREG_AUTOSAVE				(0x7fffff08)  // HKEY_CURRENT_USER\Software\EmSoft\EmEditor v3\AutoSave           or eeCommon.ini\[AutoSave]
 #define EEREG_LM_COMMON				(0x7fffff11)  // HKEY_LOCAL_MACHINE\SOFTWARE\EmSoft\EmEditor v3\Common            or eeLM.ini\[Common]
 #define EEREG_LM_REGIST				(0x7fffff12)  // HKEY_LOCAL_MACHINE\SOFTWARE\EmSoft\Regist                        or eeLM.ini\[Regist]
 #define EEREG_CONFIG				(0x7fffff20)  // HKEY_CURRENT_USER\Software\EmSoft\EmEditor v3\Config\(pszConfig) or eeConfig.ini\[(pszConfig)]
@@ -2046,6 +2041,7 @@ inline BOOL Editor_LoadConfigW( HWND hwnd, LPCWSTR szConfigName )
 #define STATUS_FLAG_ERROR			3
 #define STATUS_FLAG_COLOR_MASK		3
 #define STATUS_FLAG_ERASE_SHORTLY	0x00000010
+#define STATUS_FLAG_FORCE			0x00000020
 
 #define EE_SET_STATUSA          (EE_FIRST+37)
   // (LPCSTR)lParam = szStatus
@@ -4077,6 +4073,14 @@ inline UINT_PTR Editor_GetSelLength( HWND hwnd, size_t nMaxLen = 0 )
 	return (UINT_PTR)SNDMSG( ( hwnd ), EE_GET_SEL_LENGTH, (WPARAM)nMaxLen, (LPARAM)0 );
 }
 
+#define EE_GET_TEXTW				(EE_FIRST+134)
+
+inline UINT_PTR Editor_GetTextW( HWND hwnd, UINT_PTR nBufferSize, LPWSTR szBuffer )
+{
+	_ASSERT( hwnd && IsWindow( hwnd ) );
+	return (UINT_PTR)SNDMSG( hwnd, EE_GET_TEXTW, (WPARAM)nBufferSize, (LPARAM)szBuffer );
+}
+
 //
 #define EE_LAST                 (EE_FIRST+255)
 
@@ -4338,6 +4342,30 @@ typedef struct _SUM_INFO
 // v25.1
 #define EI_RESET_BOOKMARK					410
 #define EI_BRING_CUSTOM_BAR_TOP				411
+
+#define FIND_KIND_FIND			0
+#define FIND_KIND_REPLACE		1
+#define FIND_KIND_FILE			2
+#define FIND_KIND_PATH			3
+#define FIND_KIND_FB_FIND		4
+#define FIND_KIND_FB_REPLACE	5
+#define FIND_KIND_OPEN_FILTER	6
+#define MAX_FIND_KIND			7
+#define KIND_RECENT_CHARS		7
+#define MAX_STRING_LIST_KIND	8
+
+typedef struct _STRING_ARRAY_INFO {
+	UINT cbSize;
+	UINT nKind;
+	size_t cchBuf;
+	LPWSTR pBuf;  // multiple strings terminated by double NULL
+} STRING_ARRAY_INFO;
+
+// v26.3
+#define EI_LOAD_STRING_ARRAY				412
+#define EI_SAVE_STRING_ARRAY				413
+#define EI_GET_FAST_VIEW					414   // returns TRUE if the document is in Fast View
+
 // end of nCmd
 
 #define SYNC_SETTINGS_FALSE			0
@@ -5940,6 +5968,9 @@ public:
 
 // v26.2
 #define EEID_AI_ASSISTED_WRITING          23288
+
+// v26.3
+#define EEID_FAST_VIEW                    23289
 
 // other commands
 #define EEID_FILE_MRU_FILE1               4609  // to EEID_FILE_MRU_FILE1 + 63
