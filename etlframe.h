@@ -764,7 +764,11 @@ BOOL APIENTRY DllMain( HINSTANCE hModule, DWORD  ul_reason_for_call, LPVOID /*lp
 #ifdef _DEBUG
 		_CrtSetDbgFlag( _CRTDBG_ALLOC_MEM_DF | _CRTDBG_CHECK_EVERY_1024_DF | _CRTDBG_LEAK_CHECK_DF );
 #endif
+#ifndef EE_HYBRID_CRT
+		// With EE_HYBRID_CRT the handler of ucrtbase.dll is process-wide and EmEditor.exe sets it: a handler set here would
+		// point into this DLL after it is unloaded.
 		_set_invalid_parameter_handler( myInvalidParameterHandler );
+#endif
 		_ASSERTE( _ETLData.m_hInstance == NULL );
 		_ETLData.m_hInstance = hModule;
 	}

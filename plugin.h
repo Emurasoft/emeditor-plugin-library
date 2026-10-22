@@ -317,6 +317,9 @@
 // v26.2                Added EEID_AI_ASSISTED_WRITING
 // v26.3                Added EEID_FAST_VIEW
 //                      Added EI_GET_FAST_VIEW
+// v26.4                Added EEID_FAST_VIEW_SAVE_DIFF, EEID_FAST_VIEW_LOAD_DIFF, EEID_FAST_VIEW_DISCARD_DIFF, EEID_CUSTOMIZE_FAST_VIEW
+//                      Added EI_GET_FAST_VIEW_DIFF_PATH
+//                      Added FAST_VIEW_DIFF_PATH_INFO structure
 //
 #pragma once
 
@@ -497,8 +500,9 @@
 #define SIGNATURE_TOOL_LIST_3       0x00FF0802
 #define SIGNATURE_WORKSPACE_LISTW   0x00FF0A00
 #define SIGNATURE_WORKSPACE_LISTW_9 0x00FF0A0D // new v16.0
+#define SIGNATURE_WORKSPACE_LISTW_10 0x00FF0A0E // new v26.4: a length before each document and a CRC (WorkspaceFormat.h)
 /// if you need to add SIGNATURE_WORKSPACE_LISTW_x, remember to edit MyCmdLine.cpp ("wst.") !!
-#define SIGNATURE_WORKSPACE_LIST	SIGNATURE_WORKSPACE_LISTW_9
+#define SIGNATURE_WORKSPACE_LIST	SIGNATURE_WORKSPACE_LISTW_10
 #define SIGNATURE_THEME_LIST_2      0x00FF0D01
 #define SIGNATURE_MARKER_LIST_2     0x00FF0F01
 #define SIGNATURE_FILTER_LIST_2		0x00ff1201
@@ -568,16 +572,11 @@
 #define CODEPAGE_SAME_AS_DOC		66308  // internal use only
 #define CODEPAGE_MORE				66309  // internal use only
 
-#ifdef _WIN64
 #ifdef _DEBUG
 #define MAX_UNDO_COUNT			0x01000000
 #define MAX_UNDO_COUNT2			0x00100000
 #else
 #define MAX_UNDO_COUNT			0x08000000
-#define MAX_UNDO_COUNT2			0x00100000
-#endif
-#else
-#define MAX_UNDO_COUNT			0x00100000
 #define MAX_UNDO_COUNT2			0x00100000
 #endif
 #define MIN_UNDO_COUNT			0x100
@@ -1067,7 +1066,6 @@ typedef struct _CUSTOM_BAR_CLOSE_INFO {
 	DWORD	dwFlags;
 } CUSTOM_BAR_CLOSE_INFO;
 
-#if (defined(_WIN64) || defined(_W64))
 typedef struct tagPOINT_PTR
 {
     LONG_PTR  x;
@@ -1079,23 +1077,6 @@ typedef struct tagSIZE_PTR
     LONG_PTR  cx;
     LONG_PTR  cy;
 } SIZE_PTR, *PSIZE_PTR;
-
-#else
-typedef struct tagPOINT_PTR
-{
-    LONG  x;
-    LONG  y;
-} POINT_PTR, *PPOINT_PTR;
-
-typedef struct tagSIZE_PTR
-{
-    LONG  cx;
-    LONG  cy;
-} SIZE_PTR, *PSIZE_PTR;
-
-#define LONG_PTR_MIN		LONG_MIN
-#define LONG_PTR_MAX		LONG_MAX
-#endif
 
 typedef struct tagPOINT64
 {
@@ -4366,16 +4347,26 @@ typedef struct _STRING_ARRAY_INFO {
 #define EI_SAVE_STRING_ARRAY				413
 #define EI_GET_FAST_VIEW					414   // returns TRUE if the document is in Fast View
 
+// v26.4
+#define EI_GET_FAST_VIEW_DIFF_PATH			415   // lParam = FAST_VIEW_DIFF_PATH_INFO*: gets the diff file of Fast View of a file, returns the length
+
+typedef struct _FAST_VIEW_DIFF_PATH_INFO {
+	UINT cbSize;
+	LPCWSTR pszFile;  // the path of the file
+	size_t cchBuf;
+	LPWSTR pBuf;      // receives the path of the diff file: the one found for the file, or the one that Save Diff writes
+} FAST_VIEW_DIFF_PATH_INFO;
+
 // end of nCmd
 
 #define SYNC_SETTINGS_FALSE			0
 #define SYNC_SETTINGS_TRUE			1
 #define SYNC_SETTINGS_SEND			2
 #define SYNC_SETTINGS_RECEIVE		4
-#define SYNC_VIA_MS_ACCOUNT			0
+#define SYNC_VIA_MS_ACCOUNT			0				// no longer available: EmEditor syncs only via a sync folder (SYNC_VIA_NETWORK_FOLDER)
 #define SYNC_VIA_NETWORK_FOLDER		8
 #define SYNC_SETTINGS_PLUGINS		0x0010
-#define	DEF_SYNC_SETTIGNS			(SYNC_SETTINGS_FALSE | SYNC_SETTINGS_SEND | SYNC_SETTINGS_RECEIVE | SYNC_VIA_MS_ACCOUNT)
+#define	DEF_SYNC_SETTIGNS			(SYNC_SETTINGS_FALSE | SYNC_SETTINGS_SEND | SYNC_SETTINGS_RECEIVE | SYNC_VIA_NETWORK_FOLDER)
 
 #define SYNC_FLAG_FORCE				1				
 #define SYNC_FLAG_SEND				2
@@ -5972,6 +5963,11 @@ public:
 // v26.3
 #define EEID_FAST_VIEW                    23289
 
+// v26.4
+#define EEID_FAST_VIEW_SAVE_DIFF          23291
+#define EEID_FAST_VIEW_LOAD_DIFF          23292
+#define EEID_FAST_VIEW_DISCARD_DIFF       23293
+
 // other commands
 #define EEID_FILE_MRU_FILE1               4609  // to EEID_FILE_MRU_FILE1 + 63
 #define EEID_MRU_FONT1                    4736  // to EEID_MRU_FONT1 + 63
@@ -6101,6 +6097,7 @@ public:
 #define EEID_CUSTOMIZE_MENUS              9079
 #define EEID_CUSTOMIZE_ENCODINGS		  9080
 #define EEID_CUSTOMIZE_SNIPPETS           9081
+#define EEID_CUSTOMIZE_FAST_VIEW          9082
 
 // for Projects plug-in
 #ifdef USE_PROJECTS_PLUGIN
